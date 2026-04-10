@@ -19,12 +19,14 @@
     <string name="home_title">加入会议</string>
     <string name="home_room_label">房间 ID 或 slug</string>
     <string name="home_room_hint">例如 engineering-standup</string>
+    <string name="home_create_meeting">发起会议</string>
     <string name="home_join">加入</string>
     <string name="home_logout">退出登录</string>
     <string name="home_signed_in_as">已登录：%1$s</string>
 
     <!-- Room screen -->
     <string name="room_title">会议中</string>
+    <string name="room_slug_label">会议号：%1$s</string>
     <string name="room_connecting">正在连接…</string>
     <string name="room_action_mic_on">开启麦克风</string>
     <string name="room_action_mic_off">关闭麦克风</string>

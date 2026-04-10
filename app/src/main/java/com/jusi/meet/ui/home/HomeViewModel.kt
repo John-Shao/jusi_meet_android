@@ -18,6 +18,7 @@ data class HomeUiState(
     val phone: String? = null,
     val roomInput: String = "",
     val isJoining: Boolean = false,
+    val isCreating: Boolean = false,
     val errorMessage: String? = null,
 )
 
@@ -25,6 +26,7 @@ data class HomeUiState(
 data class JoinTarget(
     val livekit: LiveKitDto,
     val displayName: String,
+    val slug: String,
 )
 
 class HomeViewModel(
@@ -54,12 +56,39 @@ class HomeViewModel(
                         _state.update { it.copy(isJoining = false, errorMessage = "Room has no LiveKit info") }
                     } else {
                         _state.update { it.copy(isJoining = false) }
-                        onResolved(JoinTarget(livekit = lk, displayName = room.name ?: room.slug ?: room.id))
+                        onResolved(JoinTarget(livekit = lk, displayName = room.name ?: room.slug ?: room.id, slug = room.slug ?: room.id))
                     }
                 },
                 onFailure = { e ->
                     _state.update {
                         it.copy(isJoining = false, errorMessage = e.localizedMessage ?: "Failed to load room")
+                    }
+                },
+            )
+        }
+    }
+
+    fun createMeeting(onResolved: (JoinTarget) -> Unit) {
+        if (_state.value.isCreating) return
+
+        _state.update { it.copy(isCreating = true, errorMessage = null) }
+        val username = tokenStore.phone ?: "Android User"
+        val roomName = "${username}的会议"
+
+        viewModelScope.launch {
+            roomRepository.createRoom(username, roomName).fold(
+                onSuccess = { room ->
+                    val lk = room.livekit
+                    if (lk == null) {
+                        _state.update { it.copy(isCreating = false, errorMessage = "Room has no LiveKit info") }
+                    } else {
+                        _state.update { it.copy(isCreating = false) }
+                        onResolved(JoinTarget(livekit = lk, displayName = room.name ?: room.slug ?: room.id, slug = room.slug ?: room.id))
+                    }
+                },
+                onFailure = { e ->
+                    _state.update {
+                        it.copy(isCreating = false, errorMessage = e.localizedMessage ?: "Failed to create room")
                     }
                 },
             )

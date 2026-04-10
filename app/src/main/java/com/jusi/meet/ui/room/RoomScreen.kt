@@ -59,6 +59,7 @@ fun RoomScreen(
     livekitUrl: String,
     livekitToken: String,
     roomName: String,
+    roomSlug: String,
     onLeave: () -> Unit,
 ) {
     val context = LocalContext.current
@@ -90,7 +91,20 @@ fun RoomScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text(roomName.ifBlank { stringResource(R.string.room_title) }) })
+            TopAppBar(
+                title = {
+                    Column {
+                        Text(roomName.ifBlank { stringResource(R.string.room_title) })
+                        if (roomSlug.isNotBlank()) {
+                            Text(
+                                text = stringResource(R.string.room_slug_label, roomSlug),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
+            )
         },
     ) { padding ->
         when (state.phase) {

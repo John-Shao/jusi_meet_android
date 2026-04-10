@@ -32,11 +32,12 @@ object Routes {
     const val ROOM_ARG_URL = "url"
     const val ROOM_ARG_TOKEN = "token"
     const val ROOM_ARG_NAME = "name"
-    const val ROOM = "$ROOM_BASE/{$ROOM_ARG_URL}/{$ROOM_ARG_TOKEN}/{$ROOM_ARG_NAME}"
+    const val ROOM_ARG_SLUG = "slug"
+    const val ROOM = "$ROOM_BASE/{$ROOM_ARG_URL}/{$ROOM_ARG_TOKEN}/{$ROOM_ARG_NAME}/{$ROOM_ARG_SLUG}"
 
-    fun room(url: String, token: String, name: String): String {
+    fun room(url: String, token: String, name: String, slug: String): String {
         fun enc(s: String) = URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-        return "$ROOM_BASE/${enc(url)}/${enc(token)}/${enc(name)}"
+        return "$ROOM_BASE/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}"
     }
 
     fun decode(value: String): String =
@@ -65,8 +66,8 @@ fun AppNav() {
 
         composable(Routes.HOME) {
             HomeScreen(
-                onJoinRoom = { url, token, name ->
-                    navController.navigate(Routes.room(url, token, name))
+                onJoinRoom = { url, token, name, slug ->
+                    navController.navigate(Routes.room(url, token, name, slug))
                 },
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
@@ -82,15 +83,18 @@ fun AppNav() {
                 navArgument(Routes.ROOM_ARG_URL) { type = NavType.StringType },
                 navArgument(Routes.ROOM_ARG_TOKEN) { type = NavType.StringType },
                 navArgument(Routes.ROOM_ARG_NAME) { type = NavType.StringType },
+                navArgument(Routes.ROOM_ARG_SLUG) { type = NavType.StringType },
             ),
         ) { entry ->
             val url = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_URL).orEmpty())
             val token = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_TOKEN).orEmpty())
             val name = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_NAME).orEmpty())
+            val slug = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_SLUG).orEmpty())
             RoomScreen(
                 livekitUrl = url,
                 livekitToken = token,
                 roomName = name,
+                roomSlug = slug,
                 onLeave = { navController.popBackStack() },
             )
         }

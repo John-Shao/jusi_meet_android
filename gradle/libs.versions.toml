@@ -20,7 +20,8 @@ okhttp = "4.12.0"
 moshi = "1.15.1"
 
 # LiveKit
-livekit = "2.7.0"
+livekit = "2.23.5"
+livekitCompose = "2.2.1"
 
 [libraries]
 # Kotlin / Coroutines
@@ -55,7 +56,7 @@ moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "mosh
 
 # LiveKit
 livekit-android = { module = "io.livekit:livekit-android", version.ref = "livekit" }
-livekit-android-compose-components = { module = "io.livekit:livekit-android-compose-components", version.ref = "livekit" }
+livekit-android-compose-components = { module = "io.livekit:livekit-android-compose-components", version.ref = "livekitCompose" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

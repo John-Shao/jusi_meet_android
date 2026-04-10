@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.livekit.LiveKitController
 import io.livekit.android.events.RoomEvent
+import io.livekit.android.events.collect
 import io.livekit.android.room.Room
 import io.livekit.android.room.participant.Participant
 import io.livekit.android.room.track.Track
@@ -112,8 +113,8 @@ class RoomViewModel(
         _state.update {
             it.copy(
                 participants = ui,
-                micEnabled = local.isMicrophoneEnabled(),
-                cameraEnabled = local.isCameraEnabled(),
+                micEnabled = local.isMicrophoneEnabled,
+                cameraEnabled = local.isCameraEnabled,
             )
         }
     }
@@ -125,7 +126,7 @@ class RoomViewModel(
             identity = identity?.value ?: sid.value,
             name = name?.takeIf { it.isNotBlank() } ?: identity?.value ?: "—",
             isLocal = isLocal,
-            isMicEnabled = isMicrophoneEnabled(),
+            isMicEnabled = isMicrophoneEnabled,
             videoTrack = videoTrack,
         )
     }

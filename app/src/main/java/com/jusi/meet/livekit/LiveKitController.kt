@@ -4,11 +4,11 @@ import android.content.Context
 import io.livekit.android.ConnectOptions
 import io.livekit.android.LiveKit
 import io.livekit.android.RoomOptions
+import io.livekit.android.events.EventListenable
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.room.Room
 import io.livekit.android.room.track.LocalVideoTrack
 import io.livekit.android.room.track.Track
-import kotlinx.coroutines.flow.SharedFlow
 
 /**
  * Thin imperative wrapper around the LiveKit Android SDK.
@@ -29,7 +29,7 @@ class LiveKitController(appContext: Context) {
         ),
     )
 
-    val events: SharedFlow<RoomEvent> get() = room.events
+    val events: EventListenable<RoomEvent> get() = room.events
 
     suspend fun connect(url: String, token: String) {
         room.connect(

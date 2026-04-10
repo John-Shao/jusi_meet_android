@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:search.maven.org)",
+      "WebFetch(domain:central.sonatype.com)",
+      "Read(//c/Users/19146/.gradle/caches/**)",
+      "Bash(jar tf:*)",
+      "Bash(find . -name \"*sources*\" -exec jar tf {} \\\\;)",
+      "Bash(find . -name \"*sources*\" -exec jar xf {} io/livekit/android/compose/ui/VideoTrackView.kt \\\\;)",
+      "Bash(cd /tmp)",
+      "Bash(jar xf:*)",
+      "Read(//tmp/io/livekit/android/room/participant/**)",
+      "Read(//tmp/io/livekit/android/events/**)"
+    ]
+  }
+}

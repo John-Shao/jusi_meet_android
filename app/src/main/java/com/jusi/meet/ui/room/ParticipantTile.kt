@@ -20,7 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jusi.meet.R
-import io.livekit.android.compose.ui.VideoRenderer
+import io.livekit.android.compose.ui.VideoTrackView
 import io.livekit.android.room.Room
 
 /**
@@ -44,10 +44,10 @@ fun ParticipantTile(
     ) {
         val track = participant.videoTrack
         if (track != null) {
-            VideoRenderer(
-                room = room,
+            VideoTrackView(
                 videoTrack = track,
                 modifier = Modifier.fillMaxSize(),
+                passedRoom = room,
                 mirror = participant.isLocal,
             )
         } else {

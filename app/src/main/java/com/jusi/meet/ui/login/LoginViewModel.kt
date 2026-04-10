@@ -1,0 +1,119 @@
+package com.jusi.meet.ui.login
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.viewModelScope
+import com.jusi.meet.JusiMeetApp
+import com.jusi.meet.data.repository.AuthRepository
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+private val PHONE_REGEX = Regex("^1[3-9]\\d{9}$")
+private const val OTP_LENGTH = 6
+private const val RESEND_COOLDOWN_SECONDS = 60
+
+data class LoginUiState(
+    val phone: String = "",
+    val otp: String = "",
+    val isSendingOtp: Boolean = false,
+    val isVerifying: Boolean = false,
+    val resendCooldown: Int = 0,
+    val codeSent: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+class LoginViewModel(
+    private val authRepository: AuthRepository,
+) : ViewModel() {
+
+    private val _state = MutableStateFlow(LoginUiState())
+    val state: StateFlow<LoginUiState> = _state.asStateFlow()
+
+    fun onPhoneChange(value: String) {
+        _state.update { it.copy(phone = value.filter(Char::isDigit).take(11), errorMessage = null) }
+    }
+
+    fun onOtpChange(value: String) {
+        _state.update { it.copy(otp = value.filter(Char::isDigit).take(OTP_LENGTH), errorMessage = null) }
+    }
+
+    fun sendOtp() {
+        val phone = _state.value.phone
+        if (!PHONE_REGEX.matches(phone)) {
+            _state.update { it.copy(errorMessage = ErrorKey.PHONE_FORMAT.name) }
+            return
+        }
+        if (_state.value.isSendingOtp || _state.value.resendCooldown > 0) return
+
+        _state.update { it.copy(isSendingOtp = true, errorMessage = null) }
+        viewModelScope.launch {
+            authRepository.sendOtp(phone).fold(
+                onSuccess = {
+                    _state.update {
+                        it.copy(
+                            isSendingOtp = false,
+                            codeSent = true,
+                            resendCooldown = RESEND_COOLDOWN_SECONDS,
+                        )
+                    }
+                    runCooldown()
+                },
+                onFailure = { e ->
+                    _state.update {
+                        it.copy(isSendingOtp = false, errorMessage = e.localizedMessage ?: ErrorKey.NETWORK.name)
+                    }
+                },
+            )
+        }
+    }
+
+    fun verifyOtp(onSuccess: () -> Unit) {
+        val (phone, otp) = _state.value.let { it.phone to it.otp }
+        if (!PHONE_REGEX.matches(phone)) {
+            _state.update { it.copy(errorMessage = ErrorKey.PHONE_FORMAT.name) }
+            return
+        }
+        if (otp.length != OTP_LENGTH) {
+            _state.update { it.copy(errorMessage = ErrorKey.OTP_FORMAT.name) }
+            return
+        }
+        if (_state.value.isVerifying) return
+
+        _state.update { it.copy(isVerifying = true, errorMessage = null) }
+        viewModelScope.launch {
+            authRepository.verifyOtp(phone, otp).fold(
+                onSuccess = {
+                    _state.update { it.copy(isVerifying = false) }
+                    onSuccess()
+                },
+                onFailure = { e ->
+                    _state.update {
+                        it.copy(isVerifying = false, errorMessage = e.localizedMessage ?: ErrorKey.UNKNOWN.name)
+                    }
+                },
+            )
+        }
+    }
+
+    private fun runCooldown() {
+        viewModelScope.launch {
+            while (_state.value.resendCooldown > 0) {
+                delay(1000)
+                _state.update { it.copy(resendCooldown = (it.resendCooldown - 1).coerceAtLeast(0)) }
+            }
+        }
+    }
+
+    /** Marker keys the screen translates into localised strings. */
+    enum class ErrorKey { PHONE_FORMAT, OTP_FORMAT, NETWORK, UNKNOWN }
+
+    class Factory(private val app: JusiMeetApp) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>): T =
+            LoginViewModel(app.authRepository) as T
+    }
+}

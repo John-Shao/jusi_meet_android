@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">JuSi Meet</string>
+
+    <!-- Login screen -->
+    <string name="login_title">登录</string>
+    <string name="login_subtitle">使用手机号登录 JuSi Meet。</string>
+    <string name="login_phone_label">手机号</string>
+    <string name="login_phone_hint">例如 13812345678</string>
+    <string name="login_otp_label">短信验证码</string>
+    <string name="login_otp_hint">6 位验证码</string>
+    <string name="login_send_otp">获取验证码</string>
+    <string name="login_resend_otp">重新获取（%1$d 秒）</string>
+    <string name="login_verify">登录</string>
+    <string name="login_error_phone_format">请输入正确的 11 位中国大陆手机号。</string>
+    <string name="login_error_otp_format">请输入 6 位短信验证码。</string>
+
+    <!-- Home screen -->
+    <string name="home_title">加入会议</string>
+    <string name="home_room_label">房间 ID 或 slug</string>
+    <string name="home_room_hint">例如 engineering-standup</string>
+    <string name="home_join">加入</string>
+    <string name="home_logout">退出登录</string>
+    <string name="home_signed_in_as">已登录：%1$s</string>
+
+    <!-- Room screen -->
+    <string name="room_title">会议中</string>
+    <string name="room_connecting">正在连接…</string>
+    <string name="room_action_mic_on">开启麦克风</string>
+    <string name="room_action_mic_off">关闭麦克风</string>
+    <string name="room_action_camera_on">开启摄像头</string>
+    <string name="room_action_camera_off">关闭摄像头</string>
+    <string name="room_action_switch_camera">切换摄像头</string>
+    <string name="room_action_hangup">挂断</string>
+    <string name="room_permission_required">需要摄像头与麦克风权限才能加入会议。</string>
+    <string name="room_grant_permissions">授予权限</string>
+    <string name="room_no_video">无视频</string>
+
+    <!-- Generic -->
+    <string name="error_network">网络异常，请检查连接后重试。</string>
+    <string name="error_unknown">出错了，请重试。</string>
+    <string name="ok">确定</string>
+    <string name="cancel">取消</string>
+</resources>

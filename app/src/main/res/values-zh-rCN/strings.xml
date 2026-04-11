@@ -3,15 +3,13 @@
     <string name="app_name">JuSi Meet</string>
 
     <!-- Login screen -->
-    <string name="login_title">登录</string>
-    <string name="login_subtitle">使用手机号登录 JuSi Meet。</string>
-    <string name="login_phone_label">手机号</string>
-    <string name="login_phone_hint">例如 13812345678</string>
-    <string name="login_otp_label">短信验证码</string>
-    <string name="login_otp_hint">6 位验证码</string>
-    <string name="login_send_otp">获取验证码</string>
+    <string name="login_title">请输入手机号</string>
+    <string name="login_phone_hint">请输入手机号</string>
+    <string name="login_next">下一步</string>
+    <string name="login_otp_sent_title">验证码已发送</string>
+    <string name="login_otp_sent_to">至 %1$s</string>
     <string name="login_resend_otp">重新获取（%1$d 秒）</string>
-    <string name="login_verify">登录</string>
+    <string name="login_resend">重新获取</string>
     <string name="login_error_phone_format">请输入正确的 11 位中国大陆手机号。</string>
     <string name="login_error_otp_format">请输入 6 位短信验证码。</string>
 

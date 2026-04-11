@@ -41,6 +41,10 @@ class LoginViewModel(
         _state.update { it.copy(otp = value.filter(Char::isDigit).take(OTP_LENGTH), errorMessage = null) }
     }
 
+    fun goBackToPhone() {
+        _state.update { it.copy(codeSent = false, otp = "", errorMessage = null) }
+    }
+
     fun sendOtp() {
         val phone = _state.value.phone
         if (!PHONE_REGEX.matches(phone)) {

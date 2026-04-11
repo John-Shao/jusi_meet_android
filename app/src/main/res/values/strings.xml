@@ -3,15 +3,13 @@
     <string name="app_name">JuSi Meet</string>
 
     <!-- Login screen -->
-    <string name="login_title">Sign in</string>
-    <string name="login_subtitle">Sign in to JuSi Meet with your phone number.</string>
-    <string name="login_phone_label">Phone number</string>
-    <string name="login_phone_hint">e.g. 13812345678</string>
-    <string name="login_otp_label">SMS code</string>
-    <string name="login_otp_hint">6-digit code</string>
-    <string name="login_send_otp">Send code</string>
+    <string name="login_title">Enter phone number</string>
+    <string name="login_phone_hint">Enter phone number</string>
+    <string name="login_next">Next</string>
+    <string name="login_otp_sent_title">Code sent</string>
+    <string name="login_otp_sent_to">To %1$s</string>
     <string name="login_resend_otp">Resend (%1$ds)</string>
-    <string name="login_verify">Sign in</string>
+    <string name="login_resend">Resend</string>
     <string name="login_error_phone_format">Please enter a valid 11-digit mainland China phone number.</string>
     <string name="login_error_otp_format">Please enter the 6-digit SMS code.</string>
 

@@ -22,7 +22,7 @@ class ApiClient(tokenStore: TokenStore) {
         .add(KotlinJsonAdapterFactory())
         .build()
 
-    private val okHttp: OkHttpClient = OkHttpClient.Builder()
+    val okHttp: OkHttpClient = OkHttpClient.Builder()
         .connectTimeout(15, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)

@@ -15,83 +15,53 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddBox
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
+import androidx.compose.material3.Icon
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     onCreateMeeting: () -> Unit,
     onJoinMeeting: () -> Unit,
-    onSignedOut: () -> Unit,
 ) {
-    val app = LocalContext.current.applicationContext as JusiMeetApp
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 24.dp, vertical = 16.dp),
+    ) {
+        Spacer(Modifier.height(16.dp))
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {},
-                actions = {
-                    IconButton(onClick = {
-                        app.authRepository.signOut()
-                        onSignedOut()
-                    }) {
-                        Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.home_logout))
-                    }
-                },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.Transparent),
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(padding)
-                .padding(horizontal = 24.dp),
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Spacer(Modifier.height(16.dp))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                ActionCard(
-                    icon = Icons.Default.Videocam,
-                    label = stringResource(R.string.home_create_meeting),
-                    backgroundColor = Color(0xFFD6E4FF),
-                    iconTint = Color(0xFF3366FF),
-                    onClick = onCreateMeeting,
-                    modifier = Modifier.weight(1f),
-                )
-                ActionCard(
-                    icon = Icons.Default.AddBox,
-                    label = stringResource(R.string.home_join_meeting),
-                    backgroundColor = Color(0xFFD6E4FF),
-                    iconTint = Color(0xFF3366FF),
-                    onClick = onJoinMeeting,
-                    modifier = Modifier.weight(1f),
-                )
-            }
+            ActionCard(
+                icon = Icons.Default.Videocam,
+                label = stringResource(R.string.home_create_meeting),
+                backgroundColor = Color(0xFFD6E4FF),
+                iconTint = Color(0xFF3366FF),
+                onClick = onCreateMeeting,
+                modifier = Modifier.weight(1f),
+            )
+            ActionCard(
+                icon = Icons.Default.AddBox,
+                label = stringResource(R.string.home_join_meeting),
+                backgroundColor = Color(0xFFD6E4FF),
+                iconTint = Color(0xFF3366FF),
+                onClick = onJoinMeeting,
+                modifier = Modifier.weight(1f),
+            )
         }
     }
 }

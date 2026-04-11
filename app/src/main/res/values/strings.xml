@@ -53,6 +53,19 @@
     <string name="room_grant_permissions">Grant permissions</string>
     <string name="room_no_video">No video</string>
 
+    <!-- Tabs -->
+    <string name="tab_meeting">Meeting</string>
+    <string name="tab_profile">Me</string>
+
+    <!-- Profile screen -->
+    <string name="profile_nickname">Nickname</string>
+    <string name="profile_phone">Phone</string>
+    <string name="profile_not_set">Not set</string>
+    <string name="profile_set_nickname">Set nickname</string>
+    <string name="profile_nickname_hint">Enter a nickname</string>
+    <string name="profile_sign_out">Sign out</string>
+    <string name="profile_sign_out_confirm">Are you sure you want to sign out?</string>
+
     <!-- Generic -->
     <string name="error_network">Network error. Please check your connection and try again.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>

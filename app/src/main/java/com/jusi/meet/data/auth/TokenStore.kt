@@ -42,6 +42,10 @@ class TokenStore(context: Context) {
         get() = prefs.getString(KEY_PHONE, null)
         set(value) = prefs.edit().putString(KEY_PHONE, value).apply()
 
+    var nickname: String?
+        get() = prefs.getString(KEY_NICKNAME, null)
+        set(value) = prefs.edit().putString(KEY_NICKNAME, value).apply()
+
     fun isLoggedIn(): Boolean = !accessToken.isNullOrBlank()
 
     fun clear() {
@@ -53,5 +57,6 @@ class TokenStore(context: Context) {
         const val KEY_ACCESS = "access_token"
         const val KEY_REFRESH = "refresh_token"
         const val KEY_PHONE = "phone"
+        const val KEY_NICKNAME = "nickname"
     }
 }

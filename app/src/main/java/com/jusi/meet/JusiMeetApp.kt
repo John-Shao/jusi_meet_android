@@ -29,7 +29,7 @@ class JusiMeetApp : Application() {
         super.onCreate()
         tokenStore = TokenStore(this)
         apiClient = ApiClient(tokenStore)
-        authRepository = AuthRepository(apiClient.authApi, tokenStore)
+        authRepository = AuthRepository(apiClient.authApi, tokenStore, apiClient.okHttp)
         roomRepository = RoomRepository(apiClient.roomApi)
     }
 }

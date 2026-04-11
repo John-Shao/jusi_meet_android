@@ -53,6 +53,19 @@
     <string name="room_grant_permissions">授予权限</string>
     <string name="room_no_video">无视频</string>
 
+    <!-- Tabs -->
+    <string name="tab_meeting">会议</string>
+    <string name="tab_profile">我的</string>
+
+    <!-- Profile screen -->
+    <string name="profile_nickname">昵称</string>
+    <string name="profile_phone">手机号</string>
+    <string name="profile_not_set">未设置</string>
+    <string name="profile_set_nickname">设置昵称</string>
+    <string name="profile_nickname_hint">请输入昵称</string>
+    <string name="profile_sign_out">退出登录</string>
+    <string name="profile_sign_out_confirm">确定要退出登录吗？</string>
+
     <!-- Generic -->
     <string name="error_network">网络异常，请检查连接后重试。</string>
     <string name="error_unknown">出错了，请重试。</string>

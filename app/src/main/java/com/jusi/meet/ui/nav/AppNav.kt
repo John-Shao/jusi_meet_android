@@ -8,8 +8,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.jusi.meet.JusiMeetApp
-import com.jusi.meet.ui.home.HomeScreen
 import com.jusi.meet.ui.login.LoginScreen
+import com.jusi.meet.ui.main.MainTabScreen
 import com.jusi.meet.ui.preview.PreviewMode
 import com.jusi.meet.ui.preview.PreviewScreen
 import com.jusi.meet.ui.room.RoomScreen
@@ -59,7 +59,7 @@ fun AppNav() {
         }
 
         composable(Routes.HOME) {
-            HomeScreen(
+            MainTabScreen(
                 onCreateMeeting = { navController.navigate(Routes.CREATE_PREVIEW) },
                 onJoinMeeting = { navController.navigate(Routes.JOIN_PREVIEW) },
                 onSignedOut = {

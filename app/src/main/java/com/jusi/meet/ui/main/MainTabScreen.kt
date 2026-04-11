@@ -49,8 +49,8 @@ private data class TabItem(
 )
 
 private val tabs = listOf(
-    TabItem(R.string.tab_meeting, Icons.Filled.Videocam, Icons.Outlined.Videocam),
-    TabItem(R.string.tab_profile, Icons.Filled.Person, Icons.Outlined.Person),
+    TabItem(R.string.tab_meeting, Icons.Filled.Videocam, Icons.Filled.Videocam),
+    TabItem(R.string.tab_profile, Icons.Filled.Person, Icons.Filled.Person),
 )
 
 private val ActiveColor = Color(0xFF3366FF)

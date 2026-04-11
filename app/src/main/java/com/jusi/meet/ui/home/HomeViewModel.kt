@@ -42,6 +42,10 @@ class HomeViewModel(
         _state.update { it.copy(roomInput = value, errorMessage = null) }
     }
 
+    /** The display name used as participant identity in LiveKit: nickname first, then phone. */
+    private val displayUsername: String
+        get() = tokenStore.nickname?.takeIf { it.isNotBlank() } ?: tokenStore.phone ?: "Android User"
+
     fun joinRoom(onResolved: (JoinTarget) -> Unit) {
         val raw = _state.value.roomInput.trim()
         if (raw.isEmpty()) return
@@ -49,7 +53,7 @@ class HomeViewModel(
 
         _state.update { it.copy(isJoining = true, errorMessage = null) }
         viewModelScope.launch {
-            roomRepository.getRoom(raw).fold(
+            roomRepository.getRoom(raw, displayUsername).fold(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {
@@ -72,7 +76,7 @@ class HomeViewModel(
         if (_state.value.isCreating) return
 
         _state.update { it.copy(isCreating = true, errorMessage = null) }
-        val username = tokenStore.phone ?: "Android User"
+        val username = displayUsername
         val roomName = "${username}的会议"
 
         viewModelScope.launch {

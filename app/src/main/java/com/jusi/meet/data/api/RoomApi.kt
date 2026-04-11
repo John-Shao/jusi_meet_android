@@ -18,7 +18,10 @@ import retrofit2.http.Query
 interface RoomApi {
 
     @GET("api/v1.0/rooms/{idOrSlug}/")
-    suspend fun getRoom(@Path("idOrSlug") idOrSlug: String): RoomDto
+    suspend fun getRoom(
+        @Path("idOrSlug") idOrSlug: String,
+        @Query("username") username: String,
+    ): RoomDto
 
     @POST("api/v1.0/rooms/")
     suspend fun createRoom(

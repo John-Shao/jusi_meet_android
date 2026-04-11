@@ -35,17 +35,18 @@ class PreviewViewModel(
     private val _state = MutableStateFlow(PreviewUiState())
     val state: StateFlow<PreviewUiState> = _state.asStateFlow()
 
+    /** The display name used as participant identity in LiveKit: nickname first, then phone. */
+    private val displayUsername: String
+        get() = tokenStore.nickname?.takeIf { it.isNotBlank() } ?: tokenStore.phone ?: "Android User"
+
     val defaultMeetingName: String
-        get() {
-            val phone = tokenStore.phone ?: "Android User"
-            return "${phone}的会议"
-        }
+        get() = "${displayUsername}的会议"
 
     fun createMeeting(meetingName: String, onSuccess: (RoomTarget) -> Unit) {
         if (_state.value.isLoading) return
         _state.update { it.copy(isLoading = true, errorMessage = null) }
 
-        val username = tokenStore.phone ?: "Android User"
+        val username = displayUsername
         viewModelScope.launch {
             roomRepository.createRoom(username, meetingName).fold(
                 onSuccess = { room ->
@@ -80,7 +81,7 @@ class PreviewViewModel(
 
         _state.update { it.copy(isLoading = true, errorMessage = null) }
         viewModelScope.launch {
-            roomRepository.getRoom(trimmed).fold(
+            roomRepository.getRoom(trimmed, displayUsername).fold(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {

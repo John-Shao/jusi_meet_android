@@ -21,8 +21,8 @@ class RoomRepository(
     }
 
     /** Resolve a room by id (UUID) or slug.  Returns Result.failure on error. */
-    suspend fun getRoom(idOrSlug: String): Result<RoomDto> = runCatching {
-        val room = roomApi.getRoom(idOrSlug.trim())
+    suspend fun getRoom(idOrSlug: String, username: String): Result<RoomDto> = runCatching {
+        val room = roomApi.getRoom(idOrSlug.trim(), username)
         applyLivekitOverride(room)
     }
 

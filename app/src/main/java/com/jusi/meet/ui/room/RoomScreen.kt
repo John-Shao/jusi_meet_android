@@ -30,8 +30,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
@@ -140,6 +143,8 @@ private fun RoomContent(
     var toolbarsVisible by remember { mutableStateOf(true) }
     var showParticipants by remember { mutableStateOf(false) }
     var showLeaveDialog by remember { mutableStateOf(false) }
+    var showAudioSheet by remember { mutableStateOf(false) }
+    var audioOutput by remember { mutableStateOf(AudioOutput.Speaker) }
 
     Box(
         modifier = Modifier
@@ -162,6 +167,8 @@ private fun RoomContent(
             TopToolbar(
                 roomName = roomName,
                 roomSlug = roomSlug,
+                audioOutput = audioOutput,
+                onSpeakerClick = { showAudioSheet = true },
                 onLeave = { showLeaveDialog = true },
             )
         }
@@ -193,6 +200,15 @@ private fun RoomContent(
         )
     }
 
+    // Audio output sheet
+    if (showAudioSheet) {
+        AudioOutputSheet(
+            current = audioOutput,
+            onSelect = { audioOutput = it; showAudioSheet = false },
+            onDismiss = { showAudioSheet = false },
+        )
+    }
+
     // Leave/End meeting dialog
     if (showLeaveDialog) {
         LeaveDialog(
@@ -210,6 +226,8 @@ private fun RoomContent(
 private fun TopToolbar(
     roomName: String,
     roomSlug: String,
+    audioOutput: AudioOutput,
+    onSpeakerClick: () -> Unit,
     onLeave: () -> Unit,
 ) {
     Box(
@@ -225,11 +243,15 @@ private fun TopToolbar(
     ) {
         // Left: speaker icon
         IconButton(
-            onClick = { /* TODO: audio output picker */ },
+            onClick = onSpeakerClick,
             modifier = Modifier.align(Alignment.CenterStart),
         ) {
             Icon(
-                imageVector = Icons.AutoMirrored.Filled.VolumeUp,
+                imageVector = when (audioOutput) {
+                    AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
+                    AudioOutput.Earpiece -> Icons.Default.Hearing
+                    AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
+                },
                 contentDescription = stringResource(R.string.preview_speaker),
                 tint = Color.White,
             )
@@ -513,6 +535,101 @@ private fun LeaveDialog(
                 Text(stringResource(R.string.cancel))
             }
             Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+// ── Audio output ─────────────────────────────────────────────────────────
+
+enum class AudioOutput { Speaker, Earpiece, Mute }
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AudioOutputSheet(
+    current: AudioOutput,
+    onSelect: (AudioOutput) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            AudioOutputOption(
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                label = stringResource(R.string.preview_speaker),
+                isSelected = current == AudioOutput.Speaker,
+                onClick = { onSelect(AudioOutput.Speaker) },
+            )
+            HorizontalDivider()
+            AudioOutputOption(
+                icon = Icons.Default.Hearing,
+                label = stringResource(R.string.preview_earpiece),
+                isSelected = current == AudioOutput.Earpiece,
+                onClick = { onSelect(AudioOutput.Earpiece) },
+            )
+            HorizontalDivider()
+            AudioOutputOption(
+                icon = Icons.AutoMirrored.Filled.VolumeOff,
+                label = stringResource(R.string.preview_mute),
+                isSelected = current == AudioOutput.Mute,
+                onClick = { onSelect(AudioOutput.Mute) },
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun AudioOutputOption(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = Color(0xFF3366FF),
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

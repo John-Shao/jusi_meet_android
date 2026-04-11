@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -19,6 +21,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.jusi.meet.R
 import io.livekit.android.compose.ui.VideoTrackView
 import io.livekit.android.room.Room
@@ -73,17 +76,17 @@ fun ParticipantTile(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            if (!participant.isMicEnabled) {
-                Icon(
-                    imageVector = Icons.Default.MicOff,
-                    contentDescription = null,
-                    tint = Color.White,
-                )
-            }
+            Icon(
+                imageVector = if (participant.isMicEnabled) Icons.Default.Mic else Icons.Default.MicOff,
+                contentDescription = null,
+                tint = if (participant.isMicEnabled) Color.White else Color(0xFFFF6B6B),
+                modifier = Modifier.size(16.dp),
+            )
             Text(
                 text = participant.name,
                 color = Color.White,
                 style = MaterialTheme.typography.labelMedium,
+                fontSize = 12.sp,
             )
         }
     }

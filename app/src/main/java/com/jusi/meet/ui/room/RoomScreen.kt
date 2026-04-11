@@ -438,14 +438,12 @@ private fun ParticipantsSheet(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f),
                         )
-                        if (!p.isMicEnabled) {
-                            Icon(
-                                imageVector = Icons.Default.MicOff,
-                                contentDescription = null,
-                                tint = Color(0xFFFF6B6B),
-                                modifier = Modifier.size(20.dp),
-                            )
-                        }
+                        Icon(
+                            imageVector = if (p.isMicEnabled) Icons.Default.Mic else Icons.Default.MicOff,
+                            contentDescription = null,
+                            tint = if (p.isMicEnabled) MaterialTheme.colorScheme.onSurfaceVariant else Color(0xFFFF6B6B),
+                            modifier = Modifier.size(20.dp),
+                        )
                     }
                     HorizontalDivider()
                 }

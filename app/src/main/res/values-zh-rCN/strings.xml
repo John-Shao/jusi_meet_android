@@ -31,6 +31,9 @@
     <string name="preview_mic">麦克风</string>
     <string name="preview_camera">摄像头</string>
     <string name="preview_meeting_id_hint">会议号</string>
+    <string name="preview_speaker">扬声器</string>
+    <string name="preview_earpiece">听筒</string>
+    <string name="preview_mute">静音</string>
 
     <!-- Room screen -->
     <string name="room_title">会议中</string>

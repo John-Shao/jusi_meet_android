@@ -25,11 +25,15 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
+import androidx.compose.material.icons.automirrored.filled.VolumeOff
+import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -38,12 +42,14 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -70,6 +76,8 @@ import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 
 enum class PreviewMode { Create, Join }
+
+enum class AudioOutput { Speaker, Earpiece, Mute }
 
 /**
  * Pre-meeting preview screen used for both creating and joining meetings.
@@ -109,6 +117,8 @@ fun PreviewScreen(
 
     var micEnabled by remember { mutableStateOf(true) }
     var cameraEnabled by remember { mutableStateOf(true) }
+    var audioOutput by remember { mutableStateOf(AudioOutput.Speaker) }
+    var showAudioSheet by remember { mutableStateOf(false) }
 
     // Mode-specific state
     var meetingName by remember { mutableStateOf(previewViewModel.defaultMeetingName) }
@@ -209,7 +219,7 @@ fun PreviewScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Mic / Camera toggles
+            // Mic / Camera / Speaker toggles
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterHorizontally),
@@ -226,6 +236,21 @@ fun PreviewScreen(
                     label = stringResource(R.string.preview_camera),
                     isOn = cameraEnabled,
                     onClick = { cameraEnabled = !cameraEnabled },
+                    modifier = Modifier.weight(1f),
+                )
+                ToggleCard(
+                    icon = when (audioOutput) {
+                        AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
+                        AudioOutput.Earpiece -> Icons.Default.Hearing
+                        AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
+                    },
+                    label = stringResource(when (audioOutput) {
+                        AudioOutput.Speaker -> R.string.preview_speaker
+                        AudioOutput.Earpiece -> R.string.preview_earpiece
+                        AudioOutput.Mute -> R.string.preview_mute
+                    }),
+                    isOn = audioOutput != AudioOutput.Mute,
+                    onClick = { showAudioSheet = true },
                     modifier = Modifier.weight(1f),
                 )
             }
@@ -281,6 +306,105 @@ fun PreviewScreen(
             }
 
             Spacer(Modifier.height(32.dp))
+        }
+    }
+
+    if (showAudioSheet) {
+        AudioOutputSheet(
+            current = audioOutput,
+            onSelect = { audioOutput = it; showAudioSheet = false },
+            onDismiss = { showAudioSheet = false },
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun AudioOutputSheet(
+    current: AudioOutput,
+    onSelect: (AudioOutput) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+    ) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            AudioOutputOption(
+                icon = Icons.AutoMirrored.Filled.VolumeUp,
+                label = stringResource(R.string.preview_speaker),
+                isSelected = current == AudioOutput.Speaker,
+                onClick = { onSelect(AudioOutput.Speaker) },
+            )
+            HorizontalDivider()
+            AudioOutputOption(
+                icon = Icons.Default.Hearing,
+                label = stringResource(R.string.preview_earpiece),
+                isSelected = current == AudioOutput.Earpiece,
+                onClick = { onSelect(AudioOutput.Earpiece) },
+            )
+            HorizontalDivider()
+            AudioOutputOption(
+                icon = Icons.AutoMirrored.Filled.VolumeOff,
+                label = stringResource(R.string.preview_mute),
+                isSelected = current == AudioOutput.Mute,
+                onClick = { onSelect(AudioOutput.Mute) },
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun AudioOutputOption(
+    icon: ImageVector,
+    label: String,
+    isSelected: Boolean,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyLarge,
+            color = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
+        if (isSelected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = Color(0xFF3366FF),
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

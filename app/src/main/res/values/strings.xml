@@ -31,6 +31,9 @@
     <string name="preview_mic">Microphone</string>
     <string name="preview_camera">Camera</string>
     <string name="preview_meeting_id_hint">Meeting ID</string>
+    <string name="preview_speaker">Speaker</string>
+    <string name="preview_earpiece">Earpiece</string>
+    <string name="preview_mute">Mute</string>
 
     <!-- Room screen -->
     <string name="room_title">In meeting</string>

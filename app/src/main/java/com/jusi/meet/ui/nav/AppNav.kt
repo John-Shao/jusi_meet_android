@@ -1,6 +1,5 @@
 package com.jusi.meet.ui.nav
 
-import android.app.Application
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalContext
 import androidx.navigation.NavType
@@ -11,33 +10,26 @@ import androidx.navigation.navArgument
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.ui.home.HomeScreen
 import com.jusi.meet.ui.login.LoginScreen
+import com.jusi.meet.ui.preview.PreviewMode
+import com.jusi.meet.ui.preview.PreviewScreen
 import com.jusi.meet.ui.room.RoomScreen
 import java.net.URLDecoder
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
-/**
- * Top-level navigation graph.
- *
- *   login → home → room
- *
- * The starting destination depends on whether a token is already in the
- * encrypted store.  We compute it once at composition time; if the user
- * signs out from Home we pop back to Login.
- */
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
-    private const val ROOM_BASE = "room"
-    const val ROOM_ARG_URL = "url"
-    const val ROOM_ARG_TOKEN = "token"
-    const val ROOM_ARG_NAME = "name"
-    const val ROOM_ARG_SLUG = "slug"
-    const val ROOM = "$ROOM_BASE/{$ROOM_ARG_URL}/{$ROOM_ARG_TOKEN}/{$ROOM_ARG_NAME}/{$ROOM_ARG_SLUG}"
+    const val CREATE_PREVIEW = "create_preview"
+    const val JOIN_PREVIEW = "join_preview"
 
-    fun room(url: String, token: String, name: String, slug: String): String {
+    // Room (in-meeting)
+    private const val ROOM_BASE = "room"
+    const val ROOM = "$ROOM_BASE/{url}/{token}/{name}/{slug}/{mic}/{cam}"
+
+    fun room(url: String, token: String, name: String, slug: String, mic: Boolean, cam: Boolean): String {
         fun enc(s: String) = URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-        return "$ROOM_BASE/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}"
+        return "$ROOM_BASE/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}/$mic/$cam"
     }
 
     fun decode(value: String): String =
@@ -66,36 +58,62 @@ fun AppNav() {
 
         composable(Routes.HOME) {
             HomeScreen(
-                onJoinRoom = { url, token, name, slug ->
-                    navController.navigate(Routes.room(url, token, name, slug))
-                },
+                onCreateMeeting = { navController.navigate(Routes.CREATE_PREVIEW) },
+                onJoinMeeting = { navController.navigate(Routes.JOIN_PREVIEW) },
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
-                }
+                },
+            )
+        }
+
+        composable(Routes.CREATE_PREVIEW) {
+            PreviewScreen(
+                mode = PreviewMode.Create,
+                onEnterRoom = { url, token, name, slug, mic, cam ->
+                    navController.navigate(Routes.room(url, token, name, slug, mic, cam)) {
+                        popUpTo(Routes.HOME)
+                    }
+                },
+                onClose = { navController.popBackStack() },
+            )
+        }
+
+        composable(Routes.JOIN_PREVIEW) {
+            PreviewScreen(
+                mode = PreviewMode.Join,
+                onEnterRoom = { url, token, name, slug, mic, cam ->
+                    navController.navigate(Routes.room(url, token, name, slug, mic, cam)) {
+                        popUpTo(Routes.HOME)
+                    }
+                },
+                onClose = { navController.popBackStack() },
             )
         }
 
         composable(
             route = Routes.ROOM,
             arguments = listOf(
-                navArgument(Routes.ROOM_ARG_URL) { type = NavType.StringType },
-                navArgument(Routes.ROOM_ARG_TOKEN) { type = NavType.StringType },
-                navArgument(Routes.ROOM_ARG_NAME) { type = NavType.StringType },
-                navArgument(Routes.ROOM_ARG_SLUG) { type = NavType.StringType },
+                navArgument("url") { type = NavType.StringType },
+                navArgument("token") { type = NavType.StringType },
+                navArgument("name") { type = NavType.StringType },
+                navArgument("slug") { type = NavType.StringType },
+                navArgument("mic") { type = NavType.BoolType },
+                navArgument("cam") { type = NavType.BoolType },
             ),
         ) { entry ->
-            val url = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_URL).orEmpty())
-            val token = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_TOKEN).orEmpty())
-            val name = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_NAME).orEmpty())
-            val slug = Routes.decode(entry.arguments?.getString(Routes.ROOM_ARG_SLUG).orEmpty())
+            val args = entry.arguments!!
             RoomScreen(
-                livekitUrl = url,
-                livekitToken = token,
-                roomName = name,
-                roomSlug = slug,
-                onLeave = { navController.popBackStack() },
+                livekitUrl = Routes.decode(args.getString("url").orEmpty()),
+                livekitToken = Routes.decode(args.getString("token").orEmpty()),
+                roomName = Routes.decode(args.getString("name").orEmpty()),
+                roomSlug = Routes.decode(args.getString("slug").orEmpty()),
+                initialMicEnabled = args.getBoolean("mic", true),
+                initialCameraEnabled = args.getBoolean("cam", true),
+                onLeave = {
+                    navController.popBackStack(Routes.HOME, inclusive = false)
+                },
             )
         }
     }

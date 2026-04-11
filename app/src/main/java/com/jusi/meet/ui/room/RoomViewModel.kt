@@ -42,6 +42,8 @@ class RoomViewModel(
     application: Application,
     private val livekitUrl: String,
     private val livekitToken: String,
+    private val initialMicEnabled: Boolean = true,
+    private val initialCameraEnabled: Boolean = true,
 ) : AndroidViewModel(application) {
 
     private val controller = LiveKitController(application)
@@ -61,8 +63,8 @@ class RoomViewModel(
         viewModelScope.launch {
             runCatching {
                 controller.connect(livekitUrl, livekitToken)
-                controller.setMicrophoneEnabled(true)
-                controller.setCameraEnabled(true)
+                controller.setMicrophoneEnabled(initialMicEnabled)
+                controller.setCameraEnabled(initialCameraEnabled)
             }.onSuccess {
                 _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
                 refreshParticipants()
@@ -165,9 +167,11 @@ class RoomViewModel(
         private val application: Application,
         private val livekitUrl: String,
         private val livekitToken: String,
+        private val initialMicEnabled: Boolean = true,
+        private val initialCameraEnabled: Boolean = true,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            RoomViewModel(application, livekitUrl, livekitToken) as T
+            RoomViewModel(application, livekitUrl, livekitToken, initialMicEnabled, initialCameraEnabled) as T
     }
 }

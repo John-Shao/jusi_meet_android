@@ -16,13 +16,21 @@
     <string name="login_error_otp_format">请输入 6 位短信验证码。</string>
 
     <!-- Home screen -->
-    <string name="home_title">加入会议</string>
-    <string name="home_room_label">房间 ID 或 slug</string>
-    <string name="home_room_hint">例如 engineering-standup</string>
+    <string name="home_title">JuSi Meet</string>
+    <string name="home_room_label">会议号</string>
+    <string name="home_room_hint">例如 499707</string>
     <string name="home_create_meeting">发起会议</string>
+    <string name="home_join_meeting">加入会议</string>
     <string name="home_join">加入</string>
     <string name="home_logout">退出登录</string>
     <string name="home_signed_in_as">已登录：%1$s</string>
+
+    <!-- Preview screen -->
+    <string name="preview_start_meeting">开始会议</string>
+    <string name="preview_join_meeting">加入会议</string>
+    <string name="preview_mic">麦克风</string>
+    <string name="preview_camera">摄像头</string>
+    <string name="preview_meeting_id_hint">会议号</string>
 
     <!-- Room screen -->
     <string name="room_title">会议中</string>

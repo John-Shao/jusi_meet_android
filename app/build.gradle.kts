@@ -90,6 +90,12 @@ dependencies {
     implementation(libs.androidx.compose.foundation)
     debugImplementation(libs.androidx.compose.ui.tooling)
 
+    // CameraX (preview screen)
+    implementation(libs.androidx.camera.core)
+    implementation(libs.androidx.camera.camera2)
+    implementation(libs.androidx.camera.lifecycle)
+    implementation(libs.androidx.camera.view)
+
     // Networking
     implementation(libs.retrofit)
     implementation(libs.retrofit.converter.moshi)

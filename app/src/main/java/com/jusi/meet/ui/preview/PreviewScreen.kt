@@ -89,7 +89,7 @@ enum class AudioOutput { Speaker, Earpiece, Mute }
 @Composable
 fun PreviewScreen(
     mode: PreviewMode,
-    onEnterRoom: (livekitUrl: String, livekitToken: String, name: String, slug: String, mic: Boolean, cam: Boolean) -> Unit,
+    onEnterRoom: (roomId: String, livekitUrl: String, livekitToken: String, name: String, slug: String, isAdmin: Boolean, mic: Boolean, cam: Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as JusiMeetApp
@@ -276,7 +276,7 @@ fun PreviewScreen(
             Button(
                 onClick = {
                     val callback = { target: RoomTarget ->
-                        onEnterRoom(target.livekitUrl, target.livekitToken, target.displayName, target.slug, micEnabled, cameraEnabled)
+                        onEnterRoom(target.roomId, target.livekitUrl, target.livekitToken, target.displayName, target.slug, target.isAdmin, micEnabled, cameraEnabled)
                     }
                     when (mode) {
                         PreviewMode.Create -> previewViewModel.createMeeting(meetingName, callback)

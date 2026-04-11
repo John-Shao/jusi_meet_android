@@ -23,13 +23,15 @@ object Routes {
     const val CREATE_PREVIEW = "create_preview"
     const val JOIN_PREVIEW = "join_preview"
 
-    // Room (in-meeting)
     private const val ROOM_BASE = "room"
-    const val ROOM = "$ROOM_BASE/{url}/{token}/{name}/{slug}/{mic}/{cam}"
+    const val ROOM = "$ROOM_BASE/{roomId}/{url}/{token}/{name}/{slug}/{isAdmin}/{mic}/{cam}"
 
-    fun room(url: String, token: String, name: String, slug: String, mic: Boolean, cam: Boolean): String {
+    fun room(
+        roomId: String, url: String, token: String, name: String, slug: String,
+        isAdmin: Boolean, mic: Boolean, cam: Boolean,
+    ): String {
         fun enc(s: String) = URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-        return "$ROOM_BASE/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}/$mic/$cam"
+        return "$ROOM_BASE/${enc(roomId)}/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}/$isAdmin/$mic/$cam"
     }
 
     fun decode(value: String): String =
@@ -71,8 +73,8 @@ fun AppNav() {
         composable(Routes.CREATE_PREVIEW) {
             PreviewScreen(
                 mode = PreviewMode.Create,
-                onEnterRoom = { url, token, name, slug, mic, cam ->
-                    navController.navigate(Routes.room(url, token, name, slug, mic, cam)) {
+                onEnterRoom = { roomId, url, token, name, slug, isAdmin, mic, cam ->
+                    navController.navigate(Routes.room(roomId, url, token, name, slug, isAdmin, mic, cam)) {
                         popUpTo(Routes.HOME)
                     }
                 },
@@ -83,8 +85,8 @@ fun AppNav() {
         composable(Routes.JOIN_PREVIEW) {
             PreviewScreen(
                 mode = PreviewMode.Join,
-                onEnterRoom = { url, token, name, slug, mic, cam ->
-                    navController.navigate(Routes.room(url, token, name, slug, mic, cam)) {
+                onEnterRoom = { roomId, url, token, name, slug, isAdmin, mic, cam ->
+                    navController.navigate(Routes.room(roomId, url, token, name, slug, isAdmin, mic, cam)) {
                         popUpTo(Routes.HOME)
                     }
                 },
@@ -95,20 +97,24 @@ fun AppNav() {
         composable(
             route = Routes.ROOM,
             arguments = listOf(
+                navArgument("roomId") { type = NavType.StringType },
                 navArgument("url") { type = NavType.StringType },
                 navArgument("token") { type = NavType.StringType },
                 navArgument("name") { type = NavType.StringType },
                 navArgument("slug") { type = NavType.StringType },
+                navArgument("isAdmin") { type = NavType.BoolType },
                 navArgument("mic") { type = NavType.BoolType },
                 navArgument("cam") { type = NavType.BoolType },
             ),
         ) { entry ->
             val args = entry.arguments!!
             RoomScreen(
+                roomId = Routes.decode(args.getString("roomId").orEmpty()),
                 livekitUrl = Routes.decode(args.getString("url").orEmpty()),
                 livekitToken = Routes.decode(args.getString("token").orEmpty()),
                 roomName = Routes.decode(args.getString("name").orEmpty()),
                 roomSlug = Routes.decode(args.getString("slug").orEmpty()),
+                isAdmin = args.getBoolean("isAdmin", false),
                 initialMicEnabled = args.getBoolean("mic", true),
                 initialCameraEnabled = args.getBoolean("cam", true),
                 onLeave = {

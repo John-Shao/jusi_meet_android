@@ -25,4 +25,7 @@ interface RoomApi {
         @Query("username") username: String,
         @Body body: CreateRoomRequest,
     ): RoomDto
+
+    @POST("api/v1.0/rooms/{idOrSlug}/end/")
+    suspend fun endRoom(@Path("idOrSlug") idOrSlug: String)
 }

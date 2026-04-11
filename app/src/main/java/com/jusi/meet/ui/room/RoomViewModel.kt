@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.jusi.meet.JusiMeetApp
+import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
@@ -40,15 +42,16 @@ data class RoomUiState(
 
 class RoomViewModel(
     application: Application,
+    private val roomId: String,
     private val livekitUrl: String,
     private val livekitToken: String,
+    private val roomRepository: RoomRepository,
     private val initialMicEnabled: Boolean = true,
     private val initialCameraEnabled: Boolean = true,
 ) : AndroidViewModel(application) {
 
     private val controller = LiveKitController(application)
 
-    /** Exposed for the UI so it can render video tracks against the right Room. */
     val room: Room get() = controller.room
 
     private val _state = MutableStateFlow(RoomUiState())
@@ -157,6 +160,15 @@ class RoomViewModel(
         controller.disconnect()
     }
 
+    /** End the room via backend API, then disconnect. Only owner should call this. */
+    fun endMeeting(onDone: () -> Unit) {
+        viewModelScope.launch {
+            roomRepository.endRoom(roomId)
+            controller.disconnect()
+            onDone()
+        }
+    }
+
     override fun onCleared() {
         super.onCleared()
         controller.disconnect()
@@ -165,13 +177,19 @@ class RoomViewModel(
 
     class Factory(
         private val application: Application,
+        private val roomId: String,
         private val livekitUrl: String,
         private val livekitToken: String,
         private val initialMicEnabled: Boolean = true,
         private val initialCameraEnabled: Boolean = true,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            RoomViewModel(application, livekitUrl, livekitToken, initialMicEnabled, initialCameraEnabled) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T {
+            val app = application as JusiMeetApp
+            return RoomViewModel(
+                application, roomId, livekitUrl, livekitToken,
+                app.roomRepository, initialMicEnabled, initialCameraEnabled,
+            ) as T
+        }
     }
 }

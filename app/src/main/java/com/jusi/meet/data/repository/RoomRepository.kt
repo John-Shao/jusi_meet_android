@@ -26,6 +26,11 @@ class RoomRepository(
         applyLivekitOverride(room)
     }
 
+    /** End (close) a room. Only the owner can do this. */
+    suspend fun endRoom(idOrSlug: String): Result<Unit> = runCatching {
+        roomApi.endRoom(idOrSlug)
+    }
+
     /** Apply optional LiveKit URL override (used for local-dev port forwarding). */
     private fun applyLivekitOverride(room: RoomDto): RoomDto {
         val override = BuildConfig.JUSI_MEET_LIVEKIT_URL_OVERRIDE

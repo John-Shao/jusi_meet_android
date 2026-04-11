@@ -19,10 +19,12 @@ data class PreviewUiState(
 )
 
 data class RoomTarget(
+    val roomId: String,
     val livekitUrl: String,
     val livekitToken: String,
     val displayName: String,
     val slug: String,
+    val isAdmin: Boolean,
 )
 
 class PreviewViewModel(
@@ -53,10 +55,12 @@ class PreviewViewModel(
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
+                            roomId = room.id,
                             livekitUrl = lk.url,
                             livekitToken = lk.token,
                             displayName = room.name ?: room.slug ?: room.id,
                             slug = room.slug ?: room.id,
+                            isAdmin = room.is_administrable == true,
                         ))
                     }
                 },
@@ -84,10 +88,12 @@ class PreviewViewModel(
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
+                            roomId = room.id,
                             livekitUrl = lk.url,
                             livekitToken = lk.token,
                             displayName = room.name ?: room.slug ?: room.id,
                             slug = room.slug ?: room.id,
+                            isAdmin = room.is_administrable == true,
                         ))
                     }
                 },

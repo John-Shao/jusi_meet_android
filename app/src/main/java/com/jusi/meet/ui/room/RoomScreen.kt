@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -24,9 +23,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
-import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -56,10 +52,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -94,6 +94,22 @@ fun RoomScreen(
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
 
+    // Restart the local camera when the Activity returns from background /
+    // screen-lock. Android releases the camera on lock, and LiveKit doesn't
+    // auto-restart it.
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_STOP -> viewModel.onLifecycleStop()
+                Lifecycle.Event.ON_START -> viewModel.onLifecycleStart()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -113,6 +129,8 @@ fun RoomScreen(
                     onToggleMic = viewModel::toggleMic,
                     onToggleCamera = viewModel::toggleCamera,
                     onSwitchCamera = viewModel::switchCamera,
+                    onPinParticipant = viewModel::pinParticipant,
+                    onUnpinParticipant = viewModel::unpinParticipant,
                     onLeave = {
                         viewModel.leave()
                         onLeave()
@@ -137,6 +155,8 @@ private fun RoomContent(
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
     onSwitchCamera: () -> Unit,
+    onPinParticipant: (String) -> Unit,
+    onUnpinParticipant: () -> Unit,
     onLeave: () -> Unit,
     onEndMeeting: () -> Unit,
 ) {
@@ -155,7 +175,12 @@ private fun RoomContent(
             ) { toolbarsVisible = !toolbarsVisible },
     ) {
         // Video grid
-        VideoGrid(state = state, room = room)
+        VideoGrid(
+            state = state,
+            room = room,
+            onPin = onPinParticipant,
+            onUnpin = onUnpinParticipant,
+        )
 
         // Top toolbar (drawer-style)
         AnimatedVisibility(
@@ -351,45 +376,31 @@ private fun BottomToolbar(
 private fun VideoGrid(
     state: RoomUiState,
     room: io.livekit.android.room.Room,
+    onPin: (String) -> Unit,
+    onUnpin: () -> Unit,
 ) {
     val participants = state.participants
-    val count = participants.size
+    if (participants.isEmpty()) return
 
-    if (count == 0) return
+    val focus = state.focusIdentity?.takeIf { id -> participants.any { it.identity == id } }
 
-    if (count == 1) {
-        ParticipantTile(
+    if (focus != null) {
+        FocusLayout(
             room = room,
-            participant = participants[0],
+            participants = participants,
+            focusIdentity = focus,
+            onPin = onPin,
+            onUnpin = onUnpin,
             modifier = Modifier.fillMaxSize(),
         )
-    } else if (count == 2) {
-        Column(modifier = Modifier.fillMaxSize()) {
-            participants.forEach { participant ->
-                ParticipantTile(
-                    room = room,
-                    participant = participant,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f),
-                )
-            }
-        }
     } else {
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
+        GalleryLayout(
+            room = room,
+            participants = participants,
+            focusIdentity = null,
+            onPin = onPin,
             modifier = Modifier.fillMaxSize(),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
-            horizontalArrangement = Arrangement.spacedBy(2.dp),
-        ) {
-            items(participants, key = { it.identity }) { participant ->
-                ParticipantTile(
-                    room = room,
-                    participant = participant,
-                    modifier = Modifier.aspectRatio(3f / 4f),
-                )
-            }
-        }
+        )
     }
 }
 

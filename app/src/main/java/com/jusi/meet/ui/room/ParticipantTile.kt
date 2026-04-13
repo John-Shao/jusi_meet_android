@@ -1,16 +1,20 @@
 package com.jusi.meet.ui.room
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,11 +24,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jusi.meet.R
 import io.livekit.android.compose.ui.VideoTrackView
 import io.livekit.android.room.Room
+
+/** Active-speaker border color (green). */
+private val SpeakingColor = Color(0xFF00C853)
 
 /**
  * Renders one participant's video tile.  When the participant has no
@@ -33,17 +41,29 @@ import io.livekit.android.room.Room
  *
  * The mic-off badge is overlaid on the bottom-left so the local user has
  * confirmation that their own mute toggled.
+ *
+ * When [isSpeaking] is true, a 2dp green border is drawn on the tile.
+ * When [showPinButton] is true, a pin icon is shown at the top-right; tapping
+ * it invokes [onPinClick].
  */
 @Composable
 fun ParticipantTile(
     room: Room,
     participant: ParticipantUi,
     modifier: Modifier = Modifier,
+    showPinButton: Boolean = false,
+    isPinned: Boolean = false,
+    onPinClick: (() -> Unit)? = null,
 ) {
+    val shape = RoundedCornerShape(12.dp)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(12.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .clip(shape)
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .then(
+                if (participant.isSpeaking) Modifier.border(2.dp, SpeakingColor, shape)
+                else Modifier
+            ),
     ) {
         val track = participant.videoTrack
         if (track != null) {
@@ -88,6 +108,33 @@ fun ParticipantTile(
                 style = MaterialTheme.typography.labelMedium,
                 fontSize = 12.sp,
             )
+        }
+
+        // Center: pin / unpin button. Placed in the middle of the tile so
+        // it can never be occluded by top/bottom toolbars or system bars.
+        // zIndex(1f) keeps it above the video SurfaceView for hit testing.
+        val pinCallback = onPinClick
+        if (showPinButton && pinCallback != null) {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.Center)
+                    .zIndex(1f)
+                    .size(56.dp)
+                    .clip(CircleShape)
+                    .clickable { pinCallback() }
+                    .background(Color.Black.copy(alpha = 0.45f)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.PushPin,
+                    contentDescription = stringResource(
+                        if (isPinned) R.string.room_unpin_participant
+                        else R.string.room_pin_participant
+                    ),
+                    tint = if (isPinned) SpeakingColor else Color.White,
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         }
     }
 }

@@ -27,6 +27,7 @@ data class ParticipantUi(
     val isLocal: Boolean,
     val isMicEnabled: Boolean,
     val videoTrack: VideoTrack?,
+    val isSpeaking: Boolean = false,
 )
 
 /** UI-facing snapshot of the room. */
@@ -36,6 +37,8 @@ data class RoomUiState(
     val micEnabled: Boolean = true,
     val cameraEnabled: Boolean = true,
     val errorMessage: String? = null,
+    /** Identity of the participant pinned to the focus (big) tile; null = Gallery mode. */
+    val focusIdentity: String? = null,
 ) {
     enum class Phase { Connecting, Connected, Error, Disconnected }
 }
@@ -56,6 +59,20 @@ class RoomViewModel(
 
     private val _state = MutableStateFlow(RoomUiState())
     val state: StateFlow<RoomUiState> = _state.asStateFlow()
+
+    /**
+     * Identities of participants currently detected as active speakers by
+     * LiveKit. Kept separately so refreshParticipants() can merge it into
+     * ParticipantUi without depending on timing of the event.
+     */
+    private var activeSpeakerIds: Set<String> = emptySet()
+
+    /**
+     * Stable ordering of identities. Once a participant enters the list we
+     * keep their position; newcomers are appended. This avoids the whole
+     * gallery reshuffling when tracks re-publish.
+     */
+    private val orderedIdentities = LinkedHashSet<String>()
 
     init {
         observeEvents()
@@ -93,8 +110,14 @@ class RoomViewModel(
                     is RoomEvent.TrackPublished,
                     is RoomEvent.TrackUnpublished,
                     is RoomEvent.TrackMuted,
-                    is RoomEvent.TrackUnmuted,
-                    is RoomEvent.ActiveSpeakersChanged -> refreshParticipants()
+                    is RoomEvent.TrackUnmuted -> refreshParticipants()
+
+                    is RoomEvent.ActiveSpeakersChanged -> {
+                        activeSpeakerIds = event.speakers
+                            .mapNotNull { it.identity?.value }
+                            .toSet()
+                        refreshParticipants()
+                    }
 
                     is RoomEvent.Disconnected -> _state.update {
                         it.copy(phase = RoomUiState.Phase.Disconnected)
@@ -110,16 +133,31 @@ class RoomViewModel(
         val local = controller.room.localParticipant
         val remotes = controller.room.remoteParticipants.values
 
-        val ui = buildList {
-            add(local.toUi(isLocal = true))
-            remotes.forEach { add(it.toUi(isLocal = false)) }
+        // Build identity → UI map from current room state.
+        val byIdentity = linkedMapOf<String, ParticipantUi>()
+        local.toUi(isLocal = true).let { byIdentity[it.identity] = it }
+        remotes.forEach { p ->
+            val ui = p.toUi(isLocal = false)
+            byIdentity[ui.identity] = ui
         }
+
+        // Maintain stable ordering: keep previously-seen identities first
+        // in their original order, then append newcomers.
+        orderedIdentities.retainAll(byIdentity.keys)
+        byIdentity.keys.forEach { orderedIdentities.add(it) }
+
+        val ordered = orderedIdentities.mapNotNull { byIdentity[it] }
+
+        // Clear focus if the pinned participant has left.
+        val focus = _state.value.focusIdentity
+        val nextFocus = focus?.takeIf { id -> byIdentity.containsKey(id) }
 
         _state.update {
             it.copy(
-                participants = ui,
+                participants = ordered,
                 micEnabled = local.isMicrophoneEnabled,
                 cameraEnabled = local.isCameraEnabled,
+                focusIdentity = nextFocus,
             )
         }
     }
@@ -127,12 +165,14 @@ class RoomViewModel(
     private fun Participant.toUi(isLocal: Boolean): ParticipantUi {
         val cameraPub = getTrackPublication(Track.Source.CAMERA)
         val videoTrack = cameraPub?.track as? VideoTrack
+        val id = identity?.value ?: sid.value
         return ParticipantUi(
-            identity = identity?.value ?: sid.value,
+            identity = id,
             name = name?.takeIf { it.isNotBlank() } ?: identity?.value ?: "—",
             isLocal = isLocal,
             isMicEnabled = isMicrophoneEnabled,
             videoTrack = videoTrack,
+            isSpeaking = id in activeSpeakerIds,
         )
     }
 
@@ -154,6 +194,46 @@ class RoomViewModel(
 
     fun switchCamera() {
         controller.switchCamera()
+    }
+
+    /** True once we've observed an ON_STOP — used to decide if we need to
+     *  restart the local camera on the next ON_START (e.g. after screen lock). */
+    private var pausedInBackground = false
+
+    fun onLifecycleStop() {
+        pausedInBackground = true
+    }
+
+    /**
+     * Called when the host Activity comes back to the foreground.
+     * Android pauses the camera capturer when the screen locks / the app goes
+     * to background; LiveKit does not auto-restart it. We force a
+     * disable→enable cycle so the local preview comes back.
+     */
+    fun onLifecycleStart() {
+        if (!pausedInBackground) return
+        pausedInBackground = false
+
+        if (_state.value.phase != RoomUiState.Phase.Connected) return
+        if (!_state.value.cameraEnabled) return
+
+        viewModelScope.launch {
+            runCatching {
+                controller.setCameraEnabled(false)
+                controller.setCameraEnabled(true)
+            }
+            refreshParticipants()
+        }
+    }
+
+    /** Enter Focus mode pinning the given participant. */
+    fun pinParticipant(identity: String) {
+        _state.update { it.copy(focusIdentity = identity) }
+    }
+
+    /** Exit Focus mode. */
+    fun unpinParticipant() {
+        _state.update { it.copy(focusIdentity = null) }
     }
 
     fun leave() {

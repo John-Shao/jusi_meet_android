@@ -52,6 +52,8 @@
     <string name="room_permission_required">Camera and microphone permissions are required to join a meeting.</string>
     <string name="room_grant_permissions">Grant permissions</string>
     <string name="room_no_video">No video</string>
+    <string name="room_pin_participant">Pin</string>
+    <string name="room_unpin_participant">Unpin</string>
 
     <!-- Tabs -->
     <string name="tab_meeting">Meeting</string>

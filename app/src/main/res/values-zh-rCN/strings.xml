@@ -52,6 +52,8 @@
     <string name="room_permission_required">需要摄像头与麦克风权限才能加入会议。</string>
     <string name="room_grant_permissions">授予权限</string>
     <string name="room_no_video">无视频</string>
+    <string name="room_pin_participant">置顶</string>
+    <string name="room_unpin_participant">取消置顶</string>
 
     <!-- Tabs -->
     <string name="tab_meeting">会议</string>

@@ -110,18 +110,22 @@ fun ParticipantTile(
             )
         }
 
-        // Center: pin / unpin button. Placed in the middle of the tile so
-        // it can never be occluded by top/bottom toolbars or system bars.
-        // zIndex(1f) keeps it above the video SurfaceView for hit testing.
+        // Top-right: pin / unpin button. 44dp transparent tap target wraps a
+        // 32dp visible circle so the hit area meets accessibility minimums
+        // while the visual footprint stays small. zIndex(1f) keeps it above
+        // the video SurfaceView for hit testing.
         val pinCallback = onPinClick
         if (showPinButton && pinCallback != null) {
             Box(
                 modifier = Modifier
-                    .align(Alignment.Center)
+                    .align(Alignment.TopEnd)
                     .zIndex(1f)
-                    .size(56.dp)
+                    .padding(4.dp)
+                    .size(44.dp)
                     .clip(CircleShape)
                     .clickable { pinCallback() }
+                    .padding(6.dp)
+                    .clip(CircleShape)
                     .background(Color.Black.copy(alpha = 0.45f)),
                 contentAlignment = Alignment.Center,
             ) {
@@ -132,7 +136,7 @@ fun ParticipantTile(
                         else R.string.room_pin_participant
                     ),
                     tint = if (isPinned) SpeakingColor else Color.White,
-                    modifier = Modifier.size(24.dp),
+                    modifier = Modifier.size(18.dp),
                 )
             }
         }

@@ -78,7 +78,7 @@ fun GalleryLayout(
         LocalConfiguration.current.screenHeightDp
     val count = participants.size
     val layout = galleryPageLayout(isPortrait, count)
-    val gap = if (isPortrait) 2.dp else 4.dp
+    val gap = 4.dp
 
     // Single-page bespoke layouts for small counts.
     if (isPortrait && count == 3) {

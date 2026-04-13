@@ -74,10 +74,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
+import com.jusi.meet.audio.AudioOutput
+import com.jusi.meet.audio.AudioOutputController
+import com.jusi.meet.audio.AudioOutputStore
 
 enum class PreviewMode { Create, Join }
-
-enum class AudioOutput { Speaker, Earpiece, Mute }
 
 /**
  * Pre-meeting preview screen used for both creating and joining meetings.
@@ -97,6 +98,7 @@ fun PreviewScreen(
     val state by previewViewModel.state.collectAsStateWithLifecycle()
 
     val context = LocalContext.current
+    val audioOutputController = remember(context) { AudioOutputController(context) }
 
     // Permission handling
     val needed = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
@@ -117,8 +119,17 @@ fun PreviewScreen(
 
     var micEnabled by remember { mutableStateOf(true) }
     var cameraEnabled by remember { mutableStateOf(true) }
-    var audioOutput by remember { mutableStateOf(AudioOutput.Speaker) }
+    var audioOutput by remember { mutableStateOf(AudioOutputStore.lastChoice) }
     var showAudioSheet by remember { mutableStateOf(false) }
+
+    DisposableEffect(audioOutputController) {
+        audioOutputController.start()
+        onDispose { audioOutputController.stop() }
+    }
+    LaunchedEffect(audioOutput) {
+        AudioOutputStore.lastChoice = audioOutput
+        audioOutputController.apply(audioOutput)
+    }
 
     // Mode-specific state
     var meetingName by remember { mutableStateOf(previewViewModel.defaultMeetingName) }

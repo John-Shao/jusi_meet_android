@@ -58,6 +58,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -78,6 +79,10 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jusi.meet.R
+import com.jusi.meet.audio.AudioOutput
+import com.jusi.meet.audio.AudioOutputController
+import com.jusi.meet.audio.AudioOutputStore
+import io.livekit.android.audio.AudioSwitchHandler
 
 @Composable
 fun RoomScreen(
@@ -165,11 +170,35 @@ private fun RoomContent(
     onLeave: () -> Unit,
     onEndMeeting: () -> Unit,
 ) {
+    val context = LocalContext.current
+    val installedAudioSwitchHandler = room.audioSwitchHandler
+    val ownsAudioSwitchHandler = installedAudioSwitchHandler == null
+    val roomAudioSwitchHandler = remember(installedAudioSwitchHandler, context) {
+        installedAudioSwitchHandler ?: AudioSwitchHandler(context.applicationContext)
+    }
+    val audioOutputController = remember(roomAudioSwitchHandler, ownsAudioSwitchHandler, context, room) {
+        AudioOutputController(
+            context = context,
+            audioSwitchHandler = roomAudioSwitchHandler,
+            manageHandlerLifecycle = ownsAudioSwitchHandler,
+            muteOutput = room::setSpeakerMute,
+        )
+    }
     var toolbarsVisible by remember { mutableStateOf(true) }
     var showParticipants by remember { mutableStateOf(false) }
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAudioSheet by remember { mutableStateOf(false) }
-    var audioOutput by remember { mutableStateOf(AudioOutput.Speaker) }
+    // Carry the user's last choice across Preview → Room handoff.
+    var audioOutput by remember { mutableStateOf(AudioOutputStore.lastChoice) }
+
+    DisposableEffect(audioOutputController) {
+        audioOutputController.start()
+        onDispose { audioOutputController.stop() }
+    }
+    LaunchedEffect(audioOutput) {
+        AudioOutputStore.lastChoice = audioOutput
+        audioOutputController.apply(audioOutput)
+    }
 
     // When toolbars are visible, inset the video area so tiles don't sit
     // behind them. Inset = system inset (status/nav bar) + toolbar content
@@ -586,8 +615,6 @@ private fun LeaveDialog(
 }
 
 // ── Audio output ─────────────────────────────────────────────────────────
-
-enum class AudioOutput { Speaker, Earpiece, Mute }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

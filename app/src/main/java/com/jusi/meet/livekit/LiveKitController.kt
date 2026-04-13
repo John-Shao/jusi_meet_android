@@ -18,6 +18,10 @@ import io.livekit.android.room.track.Track
  * the underlying event flow.
  *
  * Mirrors the web client's settings ([adaptiveStream], [dynacast]).
+ *
+ * Audio routing: the SDK creates and owns an [io.livekit.android.audio.AudioSwitchHandler]
+ * accessible via [Room.getAudioSwitchHandler]. UI code drives routing through
+ * that single handler — we do not create a second one.
  */
 class LiveKitController(appContext: Context) {
 
@@ -27,7 +31,15 @@ class LiveKitController(appContext: Context) {
             adaptiveStream = true,
             dynacast = true,
         ),
-    )
+    ).also { r ->
+        // CRITICAL: set forceHandleAudioRouting BEFORE r.connect() is called.
+        // AudioSwitchHandler reads this flag inside its start(), which the SDK
+        // invokes during connect. If we wait until UI compose to set it, the
+        // underlying AudioSwitch has already been initialized in
+        // monitor-only mode, and selectDevice(Earpiece) becomes a no-op
+        // (Speaker still works because system default is loudspeaker).
+        r.audioSwitchHandler?.forceHandleAudioRouting = true
+    }
 
     val events: EventListenable<RoomEvent> get() = room.events
 

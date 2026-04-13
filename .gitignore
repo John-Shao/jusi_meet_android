@@ -51,3 +51,4 @@ Thumbs.db
 # APK output
 *.apk
 *.aab
+/.gradle-user-home

@@ -207,6 +207,7 @@ private fun RoomContent(
             VideoGrid(
                 state = state,
                 room = room,
+                showPinButtons = toolbarsVisible,
                 onPin = onPinParticipant,
                 onUnpin = onUnpinParticipant,
             )
@@ -409,6 +410,7 @@ private fun BottomToolbar(
 private fun VideoGrid(
     state: RoomUiState,
     room: io.livekit.android.room.Room,
+    showPinButtons: Boolean,
     onPin: (String) -> Unit,
     onUnpin: () -> Unit,
 ) {
@@ -422,6 +424,7 @@ private fun VideoGrid(
             room = room,
             participants = participants,
             focusIdentity = focus,
+            showPinButtons = showPinButtons,
             onPin = onPin,
             onUnpin = onUnpin,
             modifier = Modifier.fillMaxSize(),
@@ -431,6 +434,7 @@ private fun VideoGrid(
             room = room,
             participants = participants,
             focusIdentity = null,
+            showPinButtons = showPinButtons,
             onPin = onPin,
             modifier = Modifier.fillMaxSize(),
         )

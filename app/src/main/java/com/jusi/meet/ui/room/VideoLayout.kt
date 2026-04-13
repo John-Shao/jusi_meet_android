@@ -69,6 +69,7 @@ fun GalleryLayout(
     room: Room,
     participants: List<ParticipantUi>,
     focusIdentity: String?,
+    showPinButtons: Boolean,
     onPin: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -93,7 +94,7 @@ fun GalleryLayout(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f),
-                showPinButton = true,
+                showPinButton = showPinButtons,
                 isPinned = participants[0].identity == focusIdentity,
                 onPinClick = { onPin(participants[0].identity) },
             )
@@ -109,7 +110,7 @@ fun GalleryLayout(
                     modifier = Modifier
                         .fillMaxHeight()
                         .weight(1f),
-                    showPinButton = true,
+                    showPinButton = showPinButtons,
                     isPinned = participants[1].identity == focusIdentity,
                     onPinClick = { onPin(participants[1].identity) },
                 )
@@ -119,7 +120,7 @@ fun GalleryLayout(
                     modifier = Modifier
                         .fillMaxHeight()
                         .weight(1f),
-                    showPinButton = true,
+                    showPinButton = showPinButtons,
                     isPinned = participants[2].identity == focusIdentity,
                     onPinClick = { onPin(participants[2].identity) },
                 )
@@ -147,6 +148,7 @@ fun GalleryLayout(
                 rows = layout.rows,
                 gap = gap,
                 focusIdentity = focusIdentity,
+                showPinButtons = showPinButtons,
                 onPin = onPin,
             )
         }
@@ -173,6 +175,7 @@ private fun GridPage(
     rows: Int,
     gap: androidx.compose.ui.unit.Dp,
     focusIdentity: String?,
+    showPinButtons: Boolean,
     onPin: (String) -> Unit,
 ) {
     Column(
@@ -196,7 +199,7 @@ private fun GridPage(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .weight(1f),
-                            showPinButton = true,
+                            showPinButton = showPinButtons,
                             isPinned = p.identity == focusIdentity,
                             onPinClick = { onPin(p.identity) },
                         )
@@ -253,6 +256,7 @@ fun FocusLayout(
     room: Room,
     participants: List<ParticipantUi>,
     focusIdentity: String,
+    showPinButtons: Boolean,
     onPin: (String) -> Unit,
     onUnpin: () -> Unit,
     modifier: Modifier = Modifier,
@@ -271,7 +275,7 @@ fun FocusLayout(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.65f),
-                showPinButton = true,
+                showPinButton = showPinButtons,
                 isPinned = true,
                 onPinClick = onUnpin,
             )
@@ -291,7 +295,7 @@ fun FocusLayout(
                             modifier = Modifier
                                 .fillMaxHeight()
                                 .width(160.dp),
-                            showPinButton = true,
+                            showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },
                         )
@@ -307,7 +311,7 @@ fun FocusLayout(
                 modifier = Modifier
                     .fillMaxHeight()
                     .weight(0.75f),
-                showPinButton = true,
+                showPinButton = showPinButtons,
                 isPinned = true,
                 onPinClick = onUnpin,
             )
@@ -327,7 +331,7 @@ fun FocusLayout(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .height(100.dp),
-                            showPinButton = true,
+                            showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },
                         )

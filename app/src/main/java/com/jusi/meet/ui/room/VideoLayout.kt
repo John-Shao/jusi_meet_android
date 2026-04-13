@@ -157,7 +157,7 @@ fun GalleryLayout(
                 currentPage = pagerState.currentPage,
                 modifier = Modifier
                     .align(Alignment.BottomCenter)
-                    .padding(bottom = 88.dp), // above bottom toolbar area
+                    .padding(bottom = 8.dp),
             )
         }
     }

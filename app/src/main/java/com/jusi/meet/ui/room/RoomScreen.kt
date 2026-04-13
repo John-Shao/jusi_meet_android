@@ -2,6 +2,7 @@ package com.jusi.meet.ui.room
 
 import android.app.Application
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
@@ -14,12 +15,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.asPaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -166,6 +171,25 @@ private fun RoomContent(
     var showAudioSheet by remember { mutableStateOf(false) }
     var audioOutput by remember { mutableStateOf(AudioOutput.Speaker) }
 
+    // When toolbars are visible, inset the video area so tiles don't sit
+    // behind them. Inset = system inset (status/nav bar) + toolbar content
+    // height + a fixed visual gap, so the gap stays constant regardless of
+    // gesture vs. 3-button navigation. When hidden, video goes fullscreen.
+    val insets = WindowInsets
+    val statusTop = insets.statusBars.asPaddingValues().calculateTopPadding()
+    val navBottom = insets.navigationBars.asPaddingValues().calculateBottomPadding()
+    // Top toolbar content: vertical padding 8*2 + IconButton 40 = 56dp
+    // Bottom toolbar content: vertical padding 4*2 + icon 40 + 2 + label ~14 = ~64dp
+    val gap = 8.dp
+    val topInset by animateDpAsState(
+        targetValue = if (toolbarsVisible) statusTop + 56.dp + gap else 0.dp,
+        label = "topInset",
+    )
+    val bottomInset by animateDpAsState(
+        targetValue = if (toolbarsVisible) navBottom + 64.dp + gap else 0.dp,
+        label = "bottomInset",
+    )
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -175,12 +199,18 @@ private fun RoomContent(
             ) { toolbarsVisible = !toolbarsVisible },
     ) {
         // Video grid
-        VideoGrid(
-            state = state,
-            room = room,
-            onPin = onPinParticipant,
-            onUnpin = onUnpinParticipant,
-        )
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(top = topInset, bottom = bottomInset),
+        ) {
+            VideoGrid(
+                state = state,
+                room = room,
+                onPin = onPinParticipant,
+                onUnpin = onUnpinParticipant,
+            )
+        }
 
         // Top toolbar (drawer-style)
         AnimatedVisibility(
@@ -269,7 +299,9 @@ private fun TopToolbar(
         // Left: speaker icon
         IconButton(
             onClick = onSpeakerClick,
-            modifier = Modifier.align(Alignment.CenterStart),
+            modifier = Modifier
+                .align(Alignment.CenterStart)
+                .size(40.dp),
         ) {
             Icon(
                 imageVector = when (audioOutput) {
@@ -279,6 +311,7 @@ private fun TopToolbar(
                 },
                 contentDescription = stringResource(R.string.preview_speaker),
                 tint = Color.White,
+                modifier = Modifier.size(20.dp),
             )
         }
 
@@ -339,7 +372,7 @@ private fun BottomToolbar(
                 )
             )
             .navigationBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 12.dp),
+            .padding(horizontal = 8.dp, vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly,
         verticalAlignment = Alignment.CenterVertically,
     ) {
@@ -658,16 +691,16 @@ private fun ControlButton(
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FilledIconButton(
             onClick = onClick,
-            modifier = Modifier.size(48.dp),
+            modifier = Modifier.size(40.dp),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = bgColor,
                 contentColor = iconTint,
             ),
         ) {
-            Icon(imageVector = icon, contentDescription = label)
+            Icon(imageVector = icon, contentDescription = label, modifier = Modifier.size(20.dp))
         }
-        Spacer(Modifier.height(4.dp))
+        Spacer(Modifier.height(2.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,

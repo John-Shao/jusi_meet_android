@@ -4,7 +4,15 @@
       "Bash(xargs grep:*)",
       "Bash(./gradlew :app:compileDebugKotlin)",
       "Read(//d/workspace/Meeting/jusi_meet_suite1.9/src/frontend/**)",
-      "Bash(./gradlew :app:assembleDebug)"
+      "Bash(./gradlew :app:assembleDebug)",
+      "Read(//tmp/**)",
+      "Bash(javap -p -classpath classes.jar io.livekit.android.RoomOptions)",
+      "Bash(javap -p -classpath classes.jar io.livekit.android.audio.AudioSwitchHandler)",
+      "Bash(javap -p -classpath classes.jar io.livekit.android.room.Room)",
+      "Bash(unzip -p classes.jar io/livekit/android/audio/AudioSwitchHandler.class)",
+      "Bash(javap -p /tmp/lk-inspect/Handler.class)",
+      "Bash(javap -p Handler.class)",
+      "Read(//dev/**)"
     ]
   }
 }

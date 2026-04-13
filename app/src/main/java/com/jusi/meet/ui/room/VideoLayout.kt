@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
@@ -285,7 +284,6 @@ fun FocusLayout(
                         .fillMaxWidth()
                         .height(110.dp)
                         .padding(top = 4.dp),
-                    contentPadding = PaddingValues(horizontal = 8.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(others, key = { it.identity }) { p ->
@@ -321,7 +319,6 @@ fun FocusLayout(
                         .fillMaxHeight()
                         .width(160.dp)
                         .padding(start = 4.dp),
-                    contentPadding = PaddingValues(vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(others, key = { it.identity }) { p ->

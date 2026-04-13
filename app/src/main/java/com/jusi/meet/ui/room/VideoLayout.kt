@@ -284,9 +284,9 @@ fun FocusLayout(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(110.dp)
-                        .padding(top = 2.dp),
+                        .padding(top = 4.dp),
                     contentPadding = PaddingValues(horizontal = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(others, key = { it.identity }) { p ->
                         ParticipantTile(
@@ -322,7 +322,7 @@ fun FocusLayout(
                         .width(160.dp)
                         .padding(start = 4.dp),
                     contentPadding = PaddingValues(vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     items(others, key = { it.identity }) { p ->
                         ParticipantTile(

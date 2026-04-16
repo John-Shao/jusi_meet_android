@@ -57,6 +57,9 @@ class RoomViewModel(
 
     val room: Room get() = controller.room
 
+    /** Exposed so UI can pin the live WebRTC AudioTrack to an output device. */
+    val callAudioDeviceModule get() = controller.callAudioDeviceModule
+
     private val _state = MutableStateFlow(RoomUiState())
     val state: StateFlow<RoomUiState> = _state.asStateFlow()
 

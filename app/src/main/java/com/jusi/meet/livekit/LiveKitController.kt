@@ -1,8 +1,12 @@
 package com.jusi.meet.livekit
 
 import android.content.Context
+import com.jusi.meet.audio.CallAudioDeviceModule
+import com.jusi.meet.audio.CallFocusAudioHandler
+import io.livekit.android.AudioOptions
 import io.livekit.android.ConnectOptions
 import io.livekit.android.LiveKit
+import io.livekit.android.LiveKitOverrides
 import io.livekit.android.RoomOptions
 import io.livekit.android.events.EventListenable
 import io.livekit.android.events.RoomEvent
@@ -19,11 +23,22 @@ import io.livekit.android.room.track.Track
  *
  * Mirrors the web client's settings ([adaptiveStream], [dynacast]).
  *
- * Audio routing: the SDK creates and owns an [io.livekit.android.audio.AudioSwitchHandler]
- * accessible via [Room.getAudioSwitchHandler]. UI code drives routing through
- * that single handler — we do not create a second one.
+ * Audio routing: we replace the default [io.livekit.android.audio.AudioSwitchHandler]
+ * with a [CallFocusAudioHandler] that only manages audio focus + communication mode,
+ * and we bring our own [CallAudioDeviceModule] so we have a handle on the
+ * underlying WebRTC `AudioTrack` — on Android 15/16 we need to call
+ * `AudioTrack.setPreferredDevice` directly to hot-reroute an already-playing
+ * stream. Routing is driven by [com.jusi.meet.audio.AudioOutputController]
+ * (see that class for the reasoning).
  */
 class LiveKitController(appContext: Context) {
+
+    /**
+     * Exposed so [com.jusi.meet.audio.AudioOutputController] can pin the
+     * playback route via [CallAudioDeviceModule.setPreferredDevice].
+     */
+    val callAudioDeviceModule: CallAudioDeviceModule =
+        CallAudioDeviceModule(appContext.applicationContext)
 
     val room: Room = LiveKit.create(
         appContext = appContext.applicationContext,
@@ -31,15 +46,19 @@ class LiveKitController(appContext: Context) {
             adaptiveStream = true,
             dynacast = true,
         ),
-    ).also { r ->
-        // CRITICAL: set forceHandleAudioRouting BEFORE r.connect() is called.
-        // AudioSwitchHandler reads this flag inside its start(), which the SDK
-        // invokes during connect. If we wait until UI compose to set it, the
-        // underlying AudioSwitch has already been initialized in
-        // monitor-only mode, and selectDevice(Earpiece) becomes a no-op
-        // (Speaker still works because system default is loudspeaker).
-        r.audioSwitchHandler?.forceHandleAudioRouting = true
-    }
+        overrides = LiveKitOverrides(
+            audioOptions = AudioOptions(
+                audioHandler = CallFocusAudioHandler(appContext.applicationContext),
+                // Provide our own AudioDeviceModule so (a) we can build it
+                // with useLowLatency=false — LOW_LATENCY AudioTracks on
+                // Android 15+ are pinned to the speaker fast-path and ignore
+                // `setCommunicationDevice` — and (b) we can reach into it
+                // and call `setPreferredDevice` to hot-reroute the live
+                // AudioTrack when the user toggles speaker/earpiece mid-call.
+                audioDeviceModule = callAudioDeviceModule.module,
+            ),
+        ),
+    )
 
     val events: EventListenable<RoomEvent> get() = room.events
 
@@ -77,5 +96,9 @@ class LiveKitController(appContext: Context) {
 
     fun release() {
         runCatching { room.release() }
+        // When we provide our own AudioDeviceModule via LiveKitOverrides, the
+        // SDK leaves ownership with us (see AudioOptions.audioDeviceModule
+        // docs) — so we must release it ourselves to avoid a leak.
+        callAudioDeviceModule.release()
     }
 }

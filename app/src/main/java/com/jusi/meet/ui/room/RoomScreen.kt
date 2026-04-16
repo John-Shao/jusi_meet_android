@@ -82,7 +82,6 @@ import com.jusi.meet.R
 import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
 import com.jusi.meet.audio.AudioOutputStore
-import io.livekit.android.audio.AudioSwitchHandler
 
 @Composable
 fun RoomScreen(
@@ -133,6 +132,7 @@ fun RoomScreen(
                 RoomContent(
                     state = state,
                     room = viewModel.room,
+                    pinPreferredAudioDevice = viewModel.callAudioDeviceModule::setPreferredDevice,
                     roomName = roomName,
                     roomSlug = roomSlug,
                     isAdmin = isAdmin,
@@ -159,6 +159,7 @@ fun RoomScreen(
 private fun RoomContent(
     state: RoomUiState,
     room: io.livekit.android.room.Room,
+    pinPreferredAudioDevice: (android.media.AudioDeviceInfo?) -> Boolean,
     roomName: String,
     roomSlug: String,
     isAdmin: Boolean,
@@ -171,17 +172,11 @@ private fun RoomContent(
     onEndMeeting: () -> Unit,
 ) {
     val context = LocalContext.current
-    val installedAudioSwitchHandler = room.audioSwitchHandler
-    val ownsAudioSwitchHandler = installedAudioSwitchHandler == null
-    val roomAudioSwitchHandler = remember(installedAudioSwitchHandler, context) {
-        installedAudioSwitchHandler ?: AudioSwitchHandler(context.applicationContext)
-    }
-    val audioOutputController = remember(roomAudioSwitchHandler, ownsAudioSwitchHandler, context, room) {
+    val audioOutputController = remember(context, room) {
         AudioOutputController(
             context = context,
-            audioSwitchHandler = roomAudioSwitchHandler,
-            manageHandlerLifecycle = ownsAudioSwitchHandler,
             muteOutput = room::setSpeakerMute,
+            pinPreferredDevice = { device -> pinPreferredAudioDevice(device) },
         )
     }
     var toolbarsVisible by remember { mutableStateOf(true) }

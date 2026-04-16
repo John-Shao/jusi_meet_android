@@ -7,3 +7,12 @@
 
 # Keep our DTOs reflectively used by Moshi.
 -keep class com.jusi.meet.data.api.dto.** { *; }
+
+# Audio routing hot-reroute (see CallAudioDeviceModule): we reflect the
+# private `audioTrack` field on WebRTC's internal WebRtcAudioTrack to call
+# AudioTrack.setPreferredDevice directly. Without this keep rule, R8 will
+# rename the field and the reflection will silently return null — mid-call
+# speaker/earpiece switching regresses on Android 15+ release builds.
+-keepclassmembers class livekit.org.webrtc.audio.WebRtcAudioTrack {
+    private android.media.AudioTrack audioTrack;
+}

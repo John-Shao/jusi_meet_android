@@ -100,21 +100,36 @@ fun PreviewScreen(
     val context = LocalContext.current
     val audioOutputController = remember(context) { AudioOutputController(context) }
 
-    // Permission handling
-    val needed = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+    // Permission handling.
+    //
+    // `required` gates the camera preview + join action. BLUETOOTH_CONNECT is
+    // requested best-effort alongside — on API 31+ it's needed for
+    // `AudioManager.availableCommunicationDevices` to include BT headsets
+    // (so "Earpiece" mode can route to a paired headset), but denying it
+    // must not block joining the meeting.
+    val required = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
+    val requested = buildList {
+        addAll(required)
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+    }.toTypedArray()
     var permissionsGranted by remember {
-        mutableStateOf(needed.all {
+        mutableStateOf(required.all {
             ContextCompat.checkSelfPermission(context, it) == PackageManager.PERMISSION_GRANTED
         })
     }
     val permissionLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.RequestMultiplePermissions(),
     ) { result ->
-        permissionsGranted = result.values.all { it }
+        permissionsGranted = required.all { result[it] == true }
     }
 
     LaunchedEffect(Unit) {
-        if (!permissionsGranted) permissionLauncher.launch(needed)
+        val missing = requested.any {
+            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+        }
+        if (missing) permissionLauncher.launch(requested)
     }
 
     var micEnabled by remember { mutableStateOf(true) }

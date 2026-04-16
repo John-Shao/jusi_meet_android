@@ -27,14 +27,41 @@ private const val TAG = "CallADM"
  * field of the bundled WebRTC class; the public `JavaAudioDeviceModule`
  * surface doesn't expose it. If WebRTC changes the field name in a future
  * release we fall back gracefully — the user still has
- * `setCommunicationDevice` in play.
+ * `setCommunicationDevice` in play. See `proguard-rules.pro` for the
+ * corresponding R8 keep rule.
  */
 class CallAudioDeviceModule(context: Context) {
+
+    /**
+     * The user's last-requested device pin. Remembered across AudioTrack
+     * re-creations so that if the user toggles speaker/earpiece *before*
+     * WebRTC has built its playback track (e.g. before any remote audio has
+     * arrived), the choice is applied as soon as the track starts.
+     */
+    @Volatile
+    private var desiredDevice: AudioDeviceInfo? = null
 
     private val attrs = AudioAttributes.Builder()
         .setUsage(AudioAttributes.USAGE_VOICE_COMMUNICATION)
         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
         .build()
+
+    /**
+     * Fires when WebRTC's playback track actually starts / stops. On start
+     * we re-apply the last-requested preferred device; that closes the
+     * window where a toggle happens before the track exists.
+     */
+    private val trackStateCallback = object : JavaAudioDeviceModule.AudioTrackStateCallback {
+        override fun onWebRtcAudioTrackStart() {
+            val device = desiredDevice ?: return
+            Log.i(TAG, "AudioTrack started — re-applying preferred device type=${device.type}")
+            applyPreferredDevice(device)
+        }
+
+        override fun onWebRtcAudioTrackStop() {
+            Log.i(TAG, "AudioTrack stopped")
+        }
+    }
 
     val module: JavaAudioDeviceModule = JavaAudioDeviceModule.builder(context.applicationContext)
         // Match LiveKit's own defaults for VoIP:
@@ -45,6 +72,7 @@ class CallAudioDeviceModule(context: Context) {
         // Disable LOW_LATENCY so the AudioTrack honors system routing changes
         // (LOW_LATENCY tracks get pinned to the fast-mixer speaker path).
         .setUseLowLatency(false)
+        .setAudioTrackStateCallback(trackStateCallback)
         .createAudioDeviceModule()
 
     /**
@@ -52,14 +80,27 @@ class CallAudioDeviceModule(context: Context) {
      * drop the pin and let the system route per audio-policy rules (i.e.
      * whatever `setCommunicationDevice` currently says).
      *
+     * The choice is remembered; if WebRTC hasn't built its AudioTrack yet
+     * (e.g. the user toggled before any remote audio arrived), the pin will
+     * be applied once the track starts — see [trackStateCallback].
+     *
      * Returns true if the underlying `AudioTrack.setPreferredDevice` call
-     * returned true; false if we couldn't reach the field, or WebRTC hasn't
-     * built its AudioTrack yet, or the call rejected the device.
+     * succeeded right now; false if the track isn't built yet (deferred to
+     * the state callback) or the call itself rejected the device.
      */
     fun setPreferredDevice(device: AudioDeviceInfo?): Boolean {
+        desiredDevice = device
+        return applyPreferredDevice(device)
+    }
+
+    fun release() {
+        runCatching { module.release() }
+    }
+
+    private fun applyPreferredDevice(device: AudioDeviceInfo?): Boolean {
         val audioTrack = reflectAudioTrack()
         if (audioTrack == null) {
-            Log.w(TAG, "setPreferredDevice: AudioTrack not initialized yet")
+            Log.w(TAG, "applyPreferredDevice: AudioTrack not initialized yet — deferred")
             return false
         }
         return try {
@@ -73,10 +114,6 @@ class CallAudioDeviceModule(context: Context) {
             Log.e(TAG, "setPreferredDevice threw", t)
             false
         }
-    }
-
-    fun release() {
-        runCatching { module.release() }
     }
 
     private fun reflectAudioTrack(): AudioTrack? {

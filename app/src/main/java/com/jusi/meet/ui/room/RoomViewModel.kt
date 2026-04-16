@@ -276,9 +276,22 @@ class RoomViewModel(
     /** True once we've observed an ON_STOP — used to decide if we need to
      *  restart the local camera on the next ON_START (e.g. after screen lock). */
     private var pausedInBackground = false
+    private var backgroundedAt: Long = 0L
+
+    /**
+     * Long-background threshold. Below this, we trust LiveKit's connection
+     * state. Above it, we treat a "CONNECTED" state as *suspect* — Android
+     * Doze can starve a WebRTC session for tens of seconds without LiveKit
+     * noticing (the socket isn't formally torn down, so `room.state` stays
+     * CONNECTED while media packets have actually stopped flowing both
+     * directions). After such a background, forcing a reconnect is the only
+     * reliable way to unfreeze remote video.
+     */
+    private val staleSessionThresholdMs = 15_000L
 
     fun onLifecycleStop() {
         pausedInBackground = true
+        backgroundedAt = android.os.SystemClock.elapsedRealtime()
     }
 
     /**
@@ -300,6 +313,7 @@ class RoomViewModel(
     fun onLifecycleStart() {
         if (!pausedInBackground) return
         pausedInBackground = false
+        val bgDuration = android.os.SystemClock.elapsedRealtime() - backgroundedAt
 
         // Already flagged host-ended (server kicked us while backgrounded,
         // or a previous recovery gave up). RoomScreen's
@@ -308,7 +322,23 @@ class RoomViewModel(
         if (_state.value.hostEnded) return
 
         val roomState = controller.room.state
-        Log.i(TAG, "onLifecycleStart: room.state=$roomState phase=${_state.value.phase}")
+        Log.i(
+            TAG,
+            "onLifecycleStart: room.state=$roomState phase=${_state.value.phase} " +
+                "bgDurationMs=$bgDuration",
+        )
+
+        // After a long background, `room.state == CONNECTED` is not
+        // trustworthy — Doze can stall the WebRTC session for ~minutes
+        // without LiveKit's state machine noticing. Force a reconnect so
+        // remote media starts flowing again. The camera re-publish inside
+        // reconnectOrGiveUp + the VideoGrid sessionGeneration key rebuild
+        // together make this clean.
+        if (bgDuration >= staleSessionThresholdMs) {
+            Log.i(TAG, "onLifecycleStart: long background, forcing reconnect")
+            reconnectOrGiveUp()
+            return
+        }
 
         when (roomState) {
             Room.State.CONNECTED -> restartCameraIfNeeded()

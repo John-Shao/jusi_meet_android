@@ -102,16 +102,23 @@ fun PreviewScreen(
 
     // Permission handling.
     //
-    // `required` gates the camera preview + join action. BLUETOOTH_CONNECT is
-    // requested best-effort alongside — on API 31+ it's needed for
-    // `AudioManager.availableCommunicationDevices` to include BT headsets
-    // (so "Earpiece" mode can route to a paired headset), but denying it
-    // must not block joining the meeting.
+    // `required` gates the camera preview + join action. The extras in
+    // `requested` are best-effort — denying them must NOT block joining:
+    //   - BLUETOOTH_CONNECT (API 31+): needed for
+    //     AudioManager.availableCommunicationDevices to include BT headsets
+    //     so the "Earpiece" route can reach a paired headset.
+    //   - POST_NOTIFICATIONS (API 33+): lets the in-meeting foreground
+    //     service show its "meeting in progress" notification. The FGS
+    //     itself still runs without it (and keeps cam/mic alive in
+    //     background); user just won't see the notification.
     val required = arrayOf(Manifest.permission.CAMERA, Manifest.permission.RECORD_AUDIO)
     val requested = buildList {
         addAll(required)
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             add(Manifest.permission.BLUETOOTH_CONNECT)
+        }
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            add(Manifest.permission.POST_NOTIFICATIONS)
         }
     }.toTypedArray()
     var permissionsGranted by remember {

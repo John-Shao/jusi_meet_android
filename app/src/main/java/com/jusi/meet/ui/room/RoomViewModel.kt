@@ -9,6 +9,7 @@ import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
+import com.jusi.meet.service.ConferenceForegroundService
 import io.livekit.android.events.DisconnectReason
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
@@ -70,6 +71,7 @@ class RoomViewModel(
     private val roomId: String,
     private val livekitUrl: String,
     private val livekitToken: String,
+    private val roomName: String,
     private val roomRepository: RoomRepository,
     private val initialMicEnabled: Boolean = true,
     private val initialCameraEnabled: Boolean = true,
@@ -132,6 +134,7 @@ class RoomViewModel(
                 controller.setCameraEnabled(initialCameraEnabled)
             }.onSuccess {
                 _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
+                ConferenceForegroundService.start(getApplication(), roomName)
                 refreshParticipants()
             }.onFailure { e ->
                 _state.update {
@@ -179,6 +182,12 @@ class RoomViewModel(
                                 event.reason == DisconnectReason.ROOM_DELETED ||
                                 event.reason == DisconnectReason.ROOM_CLOSED
                             )
+                        if (hostEnded) {
+                            // Tear down the "meeting in progress" notification
+                            // immediately — the user is about to get popped
+                            // back to Home with the host-ended sheet.
+                            ConferenceForegroundService.stop(getApplication())
+                        }
                         _state.update {
                             it.copy(
                                 phase = RoomUiState.Phase.Disconnected,
@@ -393,6 +402,7 @@ class RoomViewModel(
                             sessionGeneration = it.sessionGeneration + 1,
                         )
                     }
+                    ConferenceForegroundService.start(getApplication(), roomName)
                     restartCameraIfNeeded()
                     refreshParticipants()
                 }
@@ -441,6 +451,7 @@ class RoomViewModel(
                         sessionGeneration = it.sessionGeneration + 1,
                     )
                 }
+                ConferenceForegroundService.start(getApplication(), roomName)
                 refreshParticipants()
             } else {
                 // Couldn't re-join — assume the room is gone (host ended
@@ -449,6 +460,7 @@ class RoomViewModel(
                 // "主持人已结束会议" sheet, instead of being stuck on a
                 // frozen dead room.
                 Log.w(TAG, "reconnect: giving up", result.exceptionOrNull())
+                ConferenceForegroundService.stop(getApplication())
                 _state.update {
                     it.copy(
                         phase = RoomUiState.Phase.Disconnected,
@@ -471,6 +483,7 @@ class RoomViewModel(
 
     fun leave() {
         userInitiatedLeave = true
+        ConferenceForegroundService.stop(getApplication())
         controller.disconnect()
     }
 
@@ -479,6 +492,7 @@ class RoomViewModel(
         userInitiatedLeave = true
         viewModelScope.launch {
             roomRepository.endRoom(roomId)
+            ConferenceForegroundService.stop(getApplication())
             controller.disconnect()
             onDone()
         }
@@ -486,6 +500,7 @@ class RoomViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        ConferenceForegroundService.stop(getApplication())
         controller.disconnect()
         controller.release()
     }
@@ -495,6 +510,7 @@ class RoomViewModel(
         private val roomId: String,
         private val livekitUrl: String,
         private val livekitToken: String,
+        private val roomName: String,
         private val initialMicEnabled: Boolean = true,
         private val initialCameraEnabled: Boolean = true,
     ) : ViewModelProvider.Factory {
@@ -502,7 +518,7 @@ class RoomViewModel(
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val app = application as JusiMeetApp
             return RoomViewModel(
-                application, roomId, livekitUrl, livekitToken,
+                application, roomId, livekitUrl, livekitToken, roomName,
                 app.roomRepository, initialMicEnabled, initialCameraEnabled,
             ) as T
         }

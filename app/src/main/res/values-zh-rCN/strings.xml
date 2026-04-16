@@ -58,6 +58,11 @@
     <string name="room_host_ended_ack">我知道了</string>
     <string name="room_host_ended_ack_countdown">我知道了（%1$d 秒）</string>
 
+    <!-- 会议中前台服务通知 -->
+    <string name="meeting_notification_channel_name">会议中</string>
+    <string name="meeting_notification_title">会议进行中</string>
+    <string name="meeting_notification_content">%1$s</string>
+
     <!-- Tabs -->
     <string name="tab_meeting">会议</string>
     <string name="tab_profile">我的</string>

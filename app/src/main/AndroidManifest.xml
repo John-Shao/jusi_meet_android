@@ -17,6 +17,17 @@
         android:maxSdkVersion="30" />
     <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
 
+    <!-- Keep cam/mic + media session alive while the app is backgrounded
+         during a meeting. Required since API 29; Android 14 additionally
+         requires the FOREGROUND_SERVICE_* type permissions. -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_CAMERA" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK" />
+    <!-- Required on API 33+ to show the "meeting in progress" notification
+         that pins the foreground service. -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.microphone" android:required="true" />
 
@@ -41,6 +52,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <service
+            android:name=".service.ConferenceForegroundService"
+            android:exported="false"
+            android:foregroundServiceType="camera|microphone|mediaPlayback" />
 
     </application>
 

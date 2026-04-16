@@ -99,7 +99,10 @@ fun RoomScreen(
     val app = context.applicationContext as Application
 
     val viewModel: RoomViewModel = viewModel(
-        factory = RoomViewModel.Factory(app, roomId, livekitUrl, livekitToken, initialMicEnabled, initialCameraEnabled),
+        factory = RoomViewModel.Factory(
+            app, roomId, livekitUrl, livekitToken, roomName,
+            initialMicEnabled, initialCameraEnabled,
+        ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
 

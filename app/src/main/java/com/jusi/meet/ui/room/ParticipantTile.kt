@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -14,6 +15,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.outlined.PushPin
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -74,15 +76,31 @@ fun ParticipantTile(
                 mirror = participant.isLocal,
             )
         } else {
-            Box(
+            // Camera-off placeholder: circular default avatar on the tile's
+            // existing surfaceVariant background, matching ProfileScreen.
+            // BoxWithConstraints is safe here — no SurfaceView in this branch
+            // (the memory rule about avoiding it around VideoTrackView stands
+            // for the other branch).
+            BoxWithConstraints(
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(
-                    text = stringResource(R.string.room_no_video),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    style = MaterialTheme.typography.bodyMedium,
-                )
+                val side = (minOf(maxWidth, maxHeight) * 0.30f)
+                    .coerceIn(48.dp, 120.dp)
+                Box(
+                    modifier = Modifier
+                        .size(side)
+                        .clip(CircleShape)
+                        .background(Color(0xFF3366FF)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Person,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(side * 0.6f),
+                    )
+                }
             }
         }
 

@@ -1,6 +1,7 @@
 package com.jusi.meet.ui.room
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -15,11 +16,16 @@ import io.livekit.android.room.Room
 import io.livekit.android.room.participant.Participant
 import io.livekit.android.room.track.Track
 import io.livekit.android.room.track.VideoTrack
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
+
+private const val TAG = "RoomViewModel"
 
 /** UI-facing snapshot of one participant in the room. */
 data class ParticipantUi(
@@ -287,17 +293,26 @@ class RoomViewModel(
         if (!pausedInBackground) return
         pausedInBackground = false
 
-        // Already being kicked by the server (PARTICIPANT_REMOVED while
-        // backgrounded). RoomScreen's LaunchedEffect(state.hostEnded) will
-        // auto-leave as soon as the composable resumes — don't fight it.
+        // Already flagged host-ended (server kicked us while backgrounded,
+        // or a previous reconnect gave up). RoomScreen's
+        // LaunchedEffect(state.hostEnded) auto-leaves on resume — don't
+        // fight it.
         if (_state.value.hostEnded) return
 
-        if (controller.room.state == Room.State.DISCONNECTED) {
+        val roomState = controller.room.state
+        Log.i(TAG, "onLifecycleStart: room.state=$roomState phase=${_state.value.phase}")
+
+        // Anything other than CONNECTED needs intervention. LiveKit's own
+        // reconnect can leave the room parked in RECONNECTING indefinitely
+        // when the OS froze the socket during Doze, so we force a clean
+        // re-join rather than waiting for LiveKit to give up.
+        if (roomState != Room.State.CONNECTED) {
             reconnectOrGiveUp()
             return
         }
 
-        // Still connected — just repair the camera capturer.
+        // Still connected — just repair the camera capturer (Android frees
+        // it on screen lock and LiveKit doesn't restart it).
         if (_state.value.phase != RoomUiState.Phase.Connected) return
         if (!_state.value.cameraEnabled) return
 
@@ -315,20 +330,43 @@ class RoomViewModel(
             _state.update { it.copy(phase = RoomUiState.Phase.Connecting) }
             val wantMic = _state.value.micEnabled
             val wantCamera = _state.value.cameraEnabled
-            val ok = runCatching {
-                controller.connect(livekitUrl, livekitToken)
+
+            val result = runCatching {
+                // `room.connect()` throws IllegalStateException unless state
+                // is DISCONNECTED. If LiveKit is still mid-RECONNECTING
+                // (Android just unfroze us), force-tear-down first and
+                // wait for the state transition to settle.
+                if (controller.room.state != Room.State.DISCONNECTED) {
+                    Log.i(TAG, "reconnect: forcing disconnect from state=${controller.room.state}")
+                    controller.disconnect()
+                    withTimeoutOrNull(3_000) {
+                        while (controller.room.state != Room.State.DISCONNECTED) {
+                            delay(50)
+                        }
+                    }
+                }
+
+                withTimeout(15_000) {
+                    controller.connect(livekitUrl, livekitToken)
+                }
+                check(controller.room.state == Room.State.CONNECTED) {
+                    "room state is ${controller.room.state} after connect()"
+                }
                 controller.setMicrophoneEnabled(wantMic)
                 controller.setCameraEnabled(wantCamera)
-            }.isSuccess
-            if (ok) {
+            }
+
+            if (result.isSuccess) {
+                Log.i(TAG, "reconnect: success")
                 _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
                 refreshParticipants()
             } else {
                 // Couldn't re-join — assume the room is gone (host ended
-                // it, or LiveKit GC'd it, or the token expired and the
-                // backend would tell us the same). Flip to the host-ended
-                // path so the user lands back on Home with the sheet
-                // instead of a frozen dead room.
+                // it, LiveKit GC'd an empty room, token expired). Flip to
+                // the host-ended path so the user lands on Home with the
+                // "主持人已结束会议" sheet, instead of being stuck on a
+                // frozen dead room.
+                Log.w(TAG, "reconnect: giving up", result.exceptionOrNull())
                 _state.update {
                     it.copy(
                         phase = RoomUiState.Phase.Disconnected,

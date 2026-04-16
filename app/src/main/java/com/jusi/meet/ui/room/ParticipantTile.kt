@@ -37,6 +37,15 @@ import io.livekit.android.room.Room
 private val SpeakingColor = Color(0xFF00C853)
 
 /**
+ * Tile background for both the video-on and camera-off states. Fixed to
+ * the Tencent-Meeting-style dark gray rather than theming via
+ * [MaterialTheme.colorScheme.surfaceVariant] — the theme-derived value is
+ * near-white in light mode, which looks wrong behind a video call (and
+ * makes the avatar placeholder's white Person icon glare out).
+ */
+private val TileBackground = Color(0xFF2C3033)
+
+/**
  * Renders one participant's video tile.  When the participant has no
  * camera track (camera off, joining, etc.) it shows a "no video" placeholder
  * with their name.
@@ -61,7 +70,7 @@ fun ParticipantTile(
     Box(
         modifier = modifier
             .clip(shape)
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(TileBackground)
             .then(
                 if (participant.isSpeaking) Modifier.border(2.dp, SpeakingColor, shape)
                 else Modifier
@@ -77,7 +86,7 @@ fun ParticipantTile(
             )
         } else {
             // Camera-off placeholder: circular default avatar on the tile's
-            // existing surfaceVariant background, matching ProfileScreen.
+            // dark-gray background, matching ProfileScreen's avatar style.
             // BoxWithConstraints is safe here — no SurfaceView in this branch
             // (the memory rule about avoiding it around VideoTrackView stands
             // for the other branch).

@@ -294,7 +294,7 @@ class RoomViewModel(
         pausedInBackground = false
 
         // Already flagged host-ended (server kicked us while backgrounded,
-        // or a previous reconnect gave up). RoomScreen's
+        // or a previous recovery gave up). RoomScreen's
         // LaunchedEffect(state.hostEnded) auto-leaves on resume — don't
         // fight it.
         if (_state.value.hostEnded) return
@@ -302,26 +302,59 @@ class RoomViewModel(
         val roomState = controller.room.state
         Log.i(TAG, "onLifecycleStart: room.state=$roomState phase=${_state.value.phase}")
 
-        // Anything other than CONNECTED needs intervention. LiveKit's own
-        // reconnect can leave the room parked in RECONNECTING indefinitely
-        // when the OS froze the socket during Doze, so we force a clean
-        // re-join rather than waiting for LiveKit to give up.
-        if (roomState != Room.State.CONNECTED) {
-            reconnectOrGiveUp()
-            return
+        when (roomState) {
+            Room.State.CONNECTED -> restartCameraIfNeeded()
+            // Let LiveKit's own reconnect finish before we panic. The
+            // forced-reconnect path below would interrupt a working
+            // recovery and can trigger a spurious "host ended" when the
+            // meeting is actually still alive.
+            Room.State.RECONNECTING,
+            Room.State.CONNECTING -> waitThenRecover()
+            Room.State.DISCONNECTED -> reconnectOrGiveUp()
         }
+    }
 
-        // Still connected — just repair the camera capturer (Android frees
-        // it on screen lock and LiveKit doesn't restart it).
+    private fun restartCameraIfNeeded() {
         if (_state.value.phase != RoomUiState.Phase.Connected) return
         if (!_state.value.cameraEnabled) return
-
         viewModelScope.launch {
             runCatching {
                 controller.setCameraEnabled(false)
                 controller.setCameraEnabled(true)
             }
             refreshParticipants()
+        }
+    }
+
+    /**
+     * LiveKit is mid-reconnect (typical after coming out of Doze). Give it
+     * up to 25 s to settle on its own before we escalate. Whichever
+     * terminal state it lands on drives the follow-up:
+     *  - [Room.State.CONNECTED] → normal camera repair
+     *  - [Room.State.DISCONNECTED] or still stuck → our own
+     *    reconnect-or-give-up flow
+     */
+    private fun waitThenRecover() {
+        viewModelScope.launch {
+            _state.update { it.copy(phase = RoomUiState.Phase.Connecting) }
+            val settled = withTimeoutOrNull(25_000) {
+                while (
+                    controller.room.state == Room.State.RECONNECTING ||
+                    controller.room.state == Room.State.CONNECTING
+                ) {
+                    delay(250)
+                }
+                controller.room.state
+            }
+            Log.i(TAG, "waitThenRecover: settled on state=$settled")
+            when (settled) {
+                Room.State.CONNECTED -> {
+                    _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
+                    restartCameraIfNeeded()
+                    refreshParticipants()
+                }
+                else -> reconnectOrGiveUp()
+            }
         }
     }
 
@@ -333,9 +366,8 @@ class RoomViewModel(
 
             val result = runCatching {
                 // `room.connect()` throws IllegalStateException unless state
-                // is DISCONNECTED. If LiveKit is still mid-RECONNECTING
-                // (Android just unfroze us), force-tear-down first and
-                // wait for the state transition to settle.
+                // is DISCONNECTED. If we're entering from a stuck
+                // RECONNECTING, tear down cleanly first.
                 if (controller.room.state != Room.State.DISCONNECTED) {
                     Log.i(TAG, "reconnect: forcing disconnect from state=${controller.room.state}")
                     controller.disconnect()
@@ -346,12 +378,14 @@ class RoomViewModel(
                     }
                 }
 
-                withTimeout(15_000) {
+                withTimeout(30_000) {
                     controller.connect(livekitUrl, livekitToken)
                 }
-                check(controller.room.state == Room.State.CONNECTED) {
-                    "room state is ${controller.room.state} after connect()"
-                }
+                // No strict `check` on state here — if connect() returned
+                // without throwing, trust LiveKit. Some builds briefly
+                // report CONNECTING right after connect() returns before
+                // flipping to CONNECTED, and we don't want to treat that
+                // benign race as "room is gone".
                 controller.setMicrophoneEnabled(wantMic)
                 controller.setCameraEnabled(wantCamera)
             }

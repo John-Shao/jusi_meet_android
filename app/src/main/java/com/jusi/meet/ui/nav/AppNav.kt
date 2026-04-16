@@ -22,6 +22,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -185,7 +186,10 @@ private fun HostEndedSheet(onDismiss: () -> Unit) {
             Text(
                 text = stringResource(R.string.room_host_ended_title),
                 style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.padding(vertical = 16.dp),
+                textAlign = TextAlign.Center,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
             )
             HorizontalDivider()
             TextButton(

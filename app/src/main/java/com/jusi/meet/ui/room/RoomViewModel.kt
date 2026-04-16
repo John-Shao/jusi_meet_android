@@ -282,133 +282,30 @@ class RoomViewModel(
         controller.switchCamera()
     }
 
-    /** True once we've observed an ON_STOP — used to decide if we need to
-     *  restart the local camera on the next ON_START (e.g. after screen lock). */
-    private var pausedInBackground = false
-    private var backgroundedAt: Long = 0L
-
-    /**
-     * Long-background threshold. Below this, we trust LiveKit's connection
-     * state. Above it, we treat a "CONNECTED" state as *suspect* — Android
-     * Doze can starve a WebRTC session for tens of seconds without LiveKit
-     * noticing (the socket isn't formally torn down, so `room.state` stays
-     * CONNECTED while media packets have actually stopped flowing both
-     * directions). After such a background, forcing a reconnect is the only
-     * reliable way to unfreeze remote video.
-     */
-    private val staleSessionThresholdMs = 15_000L
-
     fun onLifecycleStop() {
-        pausedInBackground = true
-        backgroundedAt = android.os.SystemClock.elapsedRealtime()
+        // Nothing to do. The in-meeting foreground service keeps cam/mic
+        // and the LiveKit session alive while the app is in the background.
     }
 
     /**
-     * Called when the host Activity comes back to the foreground.
-     *
-     * Two scenarios to handle:
-     *
-     * 1. Still connected to LiveKit (short background). Just force a
-     *    camera re-publish — Android pauses the camera capturer on screen
-     *    lock and LiveKit won't restart it on its own.
-     *
-     * 2. LiveKit connection dropped while backgrounded (long background,
-     *    Doze, network flap). We would otherwise be stuck on a dead
-     *    RoomContent forever. Attempt a fresh `connect()`:
-     *    - On success: business as usual.
-     *    - On failure: treat it as "room is gone" and fall through to
-     *      the host-ended flow (auto-leave + sheet on Home).
+     * With the foreground service running, the session stays healthy across
+     * background/foreground cycles. We only need to cover one lingering
+     * edge: if the network was actually lost past LiveKit's own retry limit
+     * while we were gone (state=DISCONNECTED), try one fresh rejoin — the
+     * Disconnected observer already decides whether that's "host ended" or
+     * "real network drop", but if we ended up Disconnected for any
+     * non-host-ended reason, trying a reconnect before giving up is worth
+     * the one-shot cost.
      */
     fun onLifecycleStart() {
-        if (!pausedInBackground) return
-        pausedInBackground = false
-        val bgDuration = android.os.SystemClock.elapsedRealtime() - backgroundedAt
-
-        // Already flagged host-ended (server kicked us while backgrounded,
-        // or a previous recovery gave up). RoomScreen's
-        // LaunchedEffect(state.hostEnded) auto-leaves on resume — don't
-        // fight it.
         if (_state.value.hostEnded) return
-
-        val roomState = controller.room.state
-        Log.i(
-            TAG,
-            "onLifecycleStart: room.state=$roomState phase=${_state.value.phase} " +
-                "bgDurationMs=$bgDuration",
-        )
-
-        // After a long background, `room.state == CONNECTED` is not
-        // trustworthy — Doze can stall the WebRTC session for ~minutes
-        // without LiveKit's state machine noticing. Force a reconnect so
-        // remote media starts flowing again. The camera re-publish inside
-        // reconnectOrGiveUp + the VideoGrid sessionGeneration key rebuild
-        // together make this clean.
-        if (bgDuration >= staleSessionThresholdMs) {
-            Log.i(TAG, "onLifecycleStart: long background, forcing reconnect")
-            reconnectOrGiveUp()
-            return
-        }
-
-        when (roomState) {
-            Room.State.CONNECTED -> restartCameraIfNeeded()
-            // Let LiveKit's own reconnect finish before we panic. The
-            // forced-reconnect path below would interrupt a working
-            // recovery and can trigger a spurious "host ended" when the
-            // meeting is actually still alive.
-            Room.State.RECONNECTING,
-            Room.State.CONNECTING -> waitThenRecover()
-            Room.State.DISCONNECTED -> reconnectOrGiveUp()
-        }
-    }
-
-    private fun restartCameraIfNeeded() {
-        if (_state.value.phase != RoomUiState.Phase.Connected) return
-        if (!_state.value.cameraEnabled) return
-        viewModelScope.launch {
-            runCatching {
-                controller.setCameraEnabled(false)
-                controller.setCameraEnabled(true)
-            }
-            refreshParticipants()
-        }
-    }
-
-    /**
-     * LiveKit is mid-reconnect (typical after coming out of Doze). Give it
-     * up to 25 s to settle on its own before we escalate. Whichever
-     * terminal state it lands on drives the follow-up:
-     *  - [Room.State.CONNECTED] → normal camera repair
-     *  - [Room.State.DISCONNECTED] or still stuck → our own
-     *    reconnect-or-give-up flow
-     */
-    private fun waitThenRecover() {
-        viewModelScope.launch {
-            _state.update { it.copy(phase = RoomUiState.Phase.Connecting) }
-            val settled = withTimeoutOrNull(25_000) {
-                while (
-                    controller.room.state == Room.State.RECONNECTING ||
-                    controller.room.state == Room.State.CONNECTING
-                ) {
-                    delay(250)
-                }
-                controller.room.state
-            }
-            Log.i(TAG, "waitThenRecover: settled on state=$settled")
-            when (settled) {
-                Room.State.CONNECTED -> {
-                    _state.update {
-                        it.copy(
-                            phase = RoomUiState.Phase.Connected,
-                            sessionGeneration = it.sessionGeneration + 1,
-                        )
-                    }
-                    ConferenceForegroundService.start(getApplication(), roomName)
-                    restartCameraIfNeeded()
-                    refreshParticipants()
-                }
-                else -> reconnectOrGiveUp()
-            }
-        }
+        if (controller.room.state != Room.State.DISCONNECTED) return
+        // Only rejoin if we'd actually established a session first. During
+        // the initial handshake, phase is Connecting — connect() runs from
+        // init{}, don't stomp it with a parallel reconnect.
+        if (_state.value.phase != RoomUiState.Phase.Disconnected) return
+        Log.i(TAG, "onLifecycleStart: room state is DISCONNECTED, attempting reconnect")
+        reconnectOrGiveUp()
     }
 
     private fun reconnectOrGiveUp() {

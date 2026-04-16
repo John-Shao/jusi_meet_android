@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
+import io.livekit.android.events.DisconnectReason
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
 import io.livekit.android.room.Room
@@ -39,6 +40,13 @@ data class RoomUiState(
     val errorMessage: String? = null,
     /** Identity of the participant pinned to the focus (big) tile; null = Gallery mode. */
     val focusIdentity: String? = null,
+    /**
+     * True when we were disconnected because the host ended the meeting
+     * (server pushed [DisconnectReason.ROOM_DELETED] / [DisconnectReason.ROOM_CLOSED])
+     * rather than because the local user chose to leave. Drives the
+     * auto-leave + "host ended" sheet on Home.
+     */
+    val hostEnded: Boolean = false,
 ) {
     enum class Phase { Connecting, Connected, Error, Disconnected }
 }
@@ -87,6 +95,16 @@ class RoomViewModel(
      */
     private val orderedIdentities = LinkedHashSet<String>()
 
+    /**
+     * Set to true when the local user initiates leaving (Leave button or
+     * host-only End meeting). Used to distinguish "host of this meeting
+     * ended it" from "a *different* host ended the meeting out from under
+     * me" — the server pushes ROOM_DELETED to everyone including the
+     * acting host, and we don't want the acting host to see the
+     * "host ended" sheet on themselves.
+     */
+    private var userInitiatedLeave = false
+
     init {
         observeEvents()
         connect()
@@ -132,8 +150,17 @@ class RoomViewModel(
                         refreshParticipants()
                     }
 
-                    is RoomEvent.Disconnected -> _state.update {
-                        it.copy(phase = RoomUiState.Phase.Disconnected)
+                    is RoomEvent.Disconnected -> {
+                        val hostEnded = !userInitiatedLeave && (
+                            event.reason == DisconnectReason.ROOM_DELETED ||
+                                event.reason == DisconnectReason.ROOM_CLOSED
+                            )
+                        _state.update {
+                            it.copy(
+                                phase = RoomUiState.Phase.Disconnected,
+                                hostEnded = hostEnded,
+                            )
+                        }
                     }
 
                     else -> Unit
@@ -263,11 +290,13 @@ class RoomViewModel(
     }
 
     fun leave() {
+        userInitiatedLeave = true
         controller.disconnect()
     }
 
     /** End the room via backend API, then disconnect. Only owner should call this. */
     fun endMeeting(onDone: () -> Unit) {
+        userInitiatedLeave = true
         viewModelScope.launch {
             roomRepository.endRoom(roomId)
             controller.disconnect()

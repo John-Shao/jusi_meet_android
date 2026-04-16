@@ -54,6 +54,9 @@
     <string name="room_no_video">无视频</string>
     <string name="room_pin_participant">置顶</string>
     <string name="room_unpin_participant">取消置顶</string>
+    <string name="room_host_ended_title">主持人已结束会议</string>
+    <string name="room_host_ended_ack">我知道了</string>
+    <string name="room_host_ended_ack_countdown">我知道了（%1$d 秒）</string>
 
     <!-- Tabs -->
     <string name="tab_meeting">会议</string>

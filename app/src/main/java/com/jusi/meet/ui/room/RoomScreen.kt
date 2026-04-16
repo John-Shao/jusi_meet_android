@@ -93,7 +93,7 @@ fun RoomScreen(
     isAdmin: Boolean,
     initialMicEnabled: Boolean = true,
     initialCameraEnabled: Boolean = true,
-    onLeave: () -> Unit,
+    onLeave: (hostEnded: Boolean) -> Unit,
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as Application
@@ -102,6 +102,13 @@ fun RoomScreen(
         factory = RoomViewModel.Factory(app, roomId, livekitUrl, livekitToken, initialMicEnabled, initialCameraEnabled),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
+
+    // Host-ended-meeting auto-leave. When the server tells us the room was
+    // deleted (not a local leave), pop back to Home and let AppNav show the
+    // "host ended" sheet.
+    LaunchedEffect(state.hostEnded) {
+        if (state.hostEnded) onLeave(true)
+    }
 
     // Restart the local camera when the Activity returns from background /
     // screen-lock. Android releases the camera on lock, and LiveKit doesn't
@@ -126,7 +133,7 @@ fun RoomScreen(
     ) {
         when (state.phase) {
             RoomUiState.Phase.Connecting -> ConnectingView()
-            RoomUiState.Phase.Error -> ErrorView(state.errorMessage, onLeave)
+            RoomUiState.Phase.Error -> ErrorView(state.errorMessage) { onLeave(false) }
             RoomUiState.Phase.Connected,
             RoomUiState.Phase.Disconnected -> {
                 RoomContent(
@@ -143,10 +150,10 @@ fun RoomScreen(
                     onUnpinParticipant = viewModel::unpinParticipant,
                     onLeave = {
                         viewModel.leave()
-                        onLeave()
+                        onLeave(false)
                     },
                     onEndMeeting = {
-                        viewModel.endMeeting { onLeave() }
+                        viewModel.endMeeting { onLeave(false) }
                     },
                 )
             }

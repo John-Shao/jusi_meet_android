@@ -54,6 +54,9 @@
     <string name="room_no_video">No video</string>
     <string name="room_pin_participant">Pin</string>
     <string name="room_unpin_participant">Unpin</string>
+    <string name="room_host_ended_title">Host ended the meeting</string>
+    <string name="room_host_ended_ack">OK</string>
+    <string name="room_host_ended_ack_countdown">OK (%1$ds)</string>
 
     <!-- Tabs -->
     <string name="tab_meeting">Meeting</string>

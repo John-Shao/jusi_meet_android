@@ -40,7 +40,9 @@
       "Bash(mkdir -p /tmp/lk-prefixed)",
       "Bash(unzip -o \"/c/Users/19146/.gradle/caches/8.10.2/transforms/002d442e20dc8f2634574d9fe5f20742/transformed/android-prefixed-137.7151.05-runtime.jar\")",
       "Bash(javap -p livekit/org/webrtc/audio/WebRtcAudioTrack.class)",
-      "Bash(javap -p livekit/org/webrtc/audio/JavaAudioDeviceModule.class)"
+      "Bash(javap -p livekit/org/webrtc/audio/JavaAudioDeviceModule.class)",
+      "Bash(grep -A 3 -i \"minify\\\\|proguard\" app/build.gradle.kts)",
+      "Bash(grep -A 3 -i \"minify\\\\|proguard\" app/build.gradle)"
     ]
   }
 }

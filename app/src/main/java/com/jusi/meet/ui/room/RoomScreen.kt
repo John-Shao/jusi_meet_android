@@ -450,25 +450,31 @@ private fun VideoGrid(
 
     val focus = state.focusIdentity?.takeIf { id -> participants.any { it.identity == id } }
 
-    if (focus != null) {
-        FocusLayout(
-            room = room,
-            participants = participants,
-            focusIdentity = focus,
-            showPinButtons = showPinButtons,
-            onPin = onPin,
-            onUnpin = onUnpin,
-            modifier = Modifier.fillMaxSize(),
-        )
-    } else {
-        GalleryLayout(
-            room = room,
-            participants = participants,
-            focusIdentity = null,
-            showPinButtons = showPinButtons,
-            onPin = onPin,
-            modifier = Modifier.fillMaxSize(),
-        )
+    // Key by sessionGeneration so that a reconnect tears the tiles down and
+    // re-mounts them. Without this, VideoTrackView's SurfaceView stays bound
+    // to the pre-reconnect RTCVideoTrack and remote video freezes on its
+    // last frame even though fresh publications are subscribed.
+    androidx.compose.runtime.key(state.sessionGeneration) {
+        if (focus != null) {
+            FocusLayout(
+                room = room,
+                participants = participants,
+                focusIdentity = focus,
+                showPinButtons = showPinButtons,
+                onPin = onPin,
+                onUnpin = onUnpin,
+                modifier = Modifier.fillMaxSize(),
+            )
+        } else {
+            GalleryLayout(
+                room = room,
+                participants = participants,
+                focusIdentity = null,
+                showPinButtons = showPinButtons,
+                onPin = onPin,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 

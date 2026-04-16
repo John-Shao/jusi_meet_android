@@ -53,6 +53,14 @@ data class RoomUiState(
      * auto-leave + "host ended" sheet on Home.
      */
     val hostEnded: Boolean = false,
+    /**
+     * Incremented on every successful (re)connect. Used as part of the
+     * Compose `key` for participant tiles so they tear down and re-mount
+     * across a reconnect — otherwise VideoTrackView keeps its pre-reconnect
+     * SurfaceView bound to the old RTCVideoTrack, and remote video freezes
+     * on its last frame even though fresh publications are subscribed.
+     */
+    val sessionGeneration: Int = 0,
 ) {
     enum class Phase { Connecting, Connected, Error, Disconnected }
 }
@@ -349,7 +357,12 @@ class RoomViewModel(
             Log.i(TAG, "waitThenRecover: settled on state=$settled")
             when (settled) {
                 Room.State.CONNECTED -> {
-                    _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
+                    _state.update {
+                        it.copy(
+                            phase = RoomUiState.Phase.Connected,
+                            sessionGeneration = it.sessionGeneration + 1,
+                        )
+                    }
                     restartCameraIfNeeded()
                     refreshParticipants()
                 }
@@ -392,7 +405,12 @@ class RoomViewModel(
 
             if (result.isSuccess) {
                 Log.i(TAG, "reconnect: success")
-                _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
+                _state.update {
+                    it.copy(
+                        phase = RoomUiState.Phase.Connected,
+                        sessionGeneration = it.sessionGeneration + 1,
+                    )
+                }
                 refreshParticipants()
             } else {
                 // Couldn't re-join — assume the room is gone (host ended

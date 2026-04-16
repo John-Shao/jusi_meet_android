@@ -151,8 +151,18 @@ class RoomViewModel(
                     }
 
                     is RoomEvent.Disconnected -> {
+                        // How the backend ends a meeting: the `/end/` endpoint
+                        // calls LiveKit's `remove_participant` for every
+                        // participant (see backend
+                        // core/services/participants_management.py#remove_all).
+                        // That surfaces on clients as PARTICIPANT_REMOVED, not
+                        // ROOM_DELETED. We also keep ROOM_DELETED / ROOM_CLOSED
+                        // as belt-and-suspenders for edge cases (LiveKit
+                        // garbage-collecting empty rooms, direct DeleteRoom
+                        // calls, etc.).
                         val hostEnded = !userInitiatedLeave && (
-                            event.reason == DisconnectReason.ROOM_DELETED ||
+                            event.reason == DisconnectReason.PARTICIPANT_REMOVED ||
+                                event.reason == DisconnectReason.ROOM_DELETED ||
                                 event.reason == DisconnectReason.ROOM_CLOSED
                             )
                         _state.update {

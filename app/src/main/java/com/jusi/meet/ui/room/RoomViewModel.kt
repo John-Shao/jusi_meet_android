@@ -269,14 +269,35 @@ class RoomViewModel(
 
     /**
      * Called when the host Activity comes back to the foreground.
-     * Android pauses the camera capturer when the screen locks / the app goes
-     * to background; LiveKit does not auto-restart it. We force a
-     * disable→enable cycle so the local preview comes back.
+     *
+     * Two scenarios to handle:
+     *
+     * 1. Still connected to LiveKit (short background). Just force a
+     *    camera re-publish — Android pauses the camera capturer on screen
+     *    lock and LiveKit won't restart it on its own.
+     *
+     * 2. LiveKit connection dropped while backgrounded (long background,
+     *    Doze, network flap). We would otherwise be stuck on a dead
+     *    RoomContent forever. Attempt a fresh `connect()`:
+     *    - On success: business as usual.
+     *    - On failure: treat it as "room is gone" and fall through to
+     *      the host-ended flow (auto-leave + sheet on Home).
      */
     fun onLifecycleStart() {
         if (!pausedInBackground) return
         pausedInBackground = false
 
+        // Already being kicked by the server (PARTICIPANT_REMOVED while
+        // backgrounded). RoomScreen's LaunchedEffect(state.hostEnded) will
+        // auto-leave as soon as the composable resumes — don't fight it.
+        if (_state.value.hostEnded) return
+
+        if (controller.room.state == Room.State.DISCONNECTED) {
+            reconnectOrGiveUp()
+            return
+        }
+
+        // Still connected — just repair the camera capturer.
         if (_state.value.phase != RoomUiState.Phase.Connected) return
         if (!_state.value.cameraEnabled) return
 
@@ -286,6 +307,35 @@ class RoomViewModel(
                 controller.setCameraEnabled(true)
             }
             refreshParticipants()
+        }
+    }
+
+    private fun reconnectOrGiveUp() {
+        viewModelScope.launch {
+            _state.update { it.copy(phase = RoomUiState.Phase.Connecting) }
+            val wantMic = _state.value.micEnabled
+            val wantCamera = _state.value.cameraEnabled
+            val ok = runCatching {
+                controller.connect(livekitUrl, livekitToken)
+                controller.setMicrophoneEnabled(wantMic)
+                controller.setCameraEnabled(wantCamera)
+            }.isSuccess
+            if (ok) {
+                _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
+                refreshParticipants()
+            } else {
+                // Couldn't re-join — assume the room is gone (host ended
+                // it, or LiveKit GC'd it, or the token expired and the
+                // backend would tell us the same). Flip to the host-ended
+                // path so the user lands back on Home with the sheet
+                // instead of a frozen dead room.
+                _state.update {
+                    it.copy(
+                        phase = RoomUiState.Phase.Disconnected,
+                        hostEnded = true,
+                    )
+                }
+            }
         }
     }
 

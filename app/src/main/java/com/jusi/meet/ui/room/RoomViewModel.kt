@@ -60,7 +60,17 @@ class RoomViewModel(
     /** Exposed so UI can pin the live WebRTC AudioTrack to an output device. */
     val callAudioDeviceModule get() = controller.callAudioDeviceModule
 
-    private val _state = MutableStateFlow(RoomUiState())
+    // Seed mic/camera with the user's Preview-time intent. Otherwise the
+    // default (true) races with connect(): refreshParticipants() runs the
+    // instant we go Connected, but `local.isCameraEnabled` stays false until
+    // the TrackPublished event lands — so the toolbar button briefly shows
+    // OFF even though the camera is coming up.
+    private val _state = MutableStateFlow(
+        RoomUiState(
+            micEnabled = initialMicEnabled,
+            cameraEnabled = initialCameraEnabled,
+        ),
+    )
     val state: StateFlow<RoomUiState> = _state.asStateFlow()
 
     /**
@@ -155,11 +165,14 @@ class RoomViewModel(
         val focus = _state.value.focusIdentity
         val nextFocus = focus?.takeIf { id -> byIdentity.containsKey(id) }
 
+        // Note: do NOT overwrite mic/cameraEnabled from `local.isXxxEnabled`
+        // here. Track publication is async, so right after connect or a
+        // toggle the LiveKit-observed state lags the user's intent and
+        // would flicker the toolbar button. The toggle functions own these
+        // fields; this method only refreshes participant/focus data.
         _state.update {
             it.copy(
                 participants = ordered,
-                micEnabled = local.isMicrophoneEnabled,
-                cameraEnabled = local.isCameraEnabled,
                 focusIdentity = nextFocus,
             )
         }
@@ -180,17 +193,22 @@ class RoomViewModel(
     }
 
     fun toggleMic() {
+        val next = !_state.value.micEnabled
+        // Optimistic UI — flip the toolbar immediately, then ask LiveKit.
+        _state.update { it.copy(micEnabled = next) }
         viewModelScope.launch {
-            val next = !_state.value.micEnabled
-            controller.setMicrophoneEnabled(next)
+            runCatching { controller.setMicrophoneEnabled(next) }
+                .onFailure { _state.update { it.copy(micEnabled = !next) } }
             refreshParticipants()
         }
     }
 
     fun toggleCamera() {
+        val next = !_state.value.cameraEnabled
+        _state.update { it.copy(cameraEnabled = next) }
         viewModelScope.launch {
-            val next = !_state.value.cameraEnabled
-            controller.setCameraEnabled(next)
+            runCatching { controller.setCameraEnabled(next) }
+                .onFailure { _state.update { it.copy(cameraEnabled = !next) } }
             refreshParticipants()
         }
     }

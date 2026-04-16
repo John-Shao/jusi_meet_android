@@ -78,6 +78,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.jusi.meet.LocalIsInPipMode
+import com.jusi.meet.MainActivity
 import com.jusi.meet.R
 import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
@@ -129,36 +131,52 @@ fun RoomScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
+    // Drive MainActivity's "allow auto-enter PiP" gate. We only want the
+    // home-gesture to collapse to a PiP window when the user is actually
+    // watching a live meeting — a Connecting spinner or Error view would
+    // PiP a blank tile otherwise.
+    val activity = context as? MainActivity
+    DisposableEffect(activity, state.phase) {
+        activity?.setMeetingInProgress(state.phase == RoomUiState.Phase.Connected)
+        onDispose { activity?.setMeetingInProgress(false) }
+    }
+
+    val isInPip = LocalIsInPipMode.current
+
     Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black),
     ) {
-        when (state.phase) {
-            RoomUiState.Phase.Connecting -> ConnectingView()
-            RoomUiState.Phase.Error -> ErrorView(state.errorMessage) { onLeave(false) }
-            RoomUiState.Phase.Connected,
-            RoomUiState.Phase.Disconnected -> {
-                RoomContent(
-                    state = state,
-                    room = viewModel.room,
-                    pinPreferredAudioDevice = viewModel.callAudioDeviceModule::setPreferredDevice,
-                    roomName = roomName,
-                    roomSlug = roomSlug,
-                    isAdmin = isAdmin,
-                    onToggleMic = viewModel::toggleMic,
-                    onToggleCamera = viewModel::toggleCamera,
-                    onSwitchCamera = viewModel::switchCamera,
-                    onPinParticipant = viewModel::pinParticipant,
-                    onUnpinParticipant = viewModel::unpinParticipant,
-                    onLeave = {
-                        viewModel.leave()
-                        onLeave(false)
-                    },
-                    onEndMeeting = {
-                        viewModel.endMeeting { onLeave(false) }
-                    },
-                )
+        if (isInPip && state.phase == RoomUiState.Phase.Connected) {
+            PipLayout(room = viewModel.room, state = state)
+        } else {
+            when (state.phase) {
+                RoomUiState.Phase.Connecting -> ConnectingView()
+                RoomUiState.Phase.Error -> ErrorView(state.errorMessage) { onLeave(false) }
+                RoomUiState.Phase.Connected,
+                RoomUiState.Phase.Disconnected -> {
+                    RoomContent(
+                        state = state,
+                        room = viewModel.room,
+                        pinPreferredAudioDevice = viewModel.callAudioDeviceModule::setPreferredDevice,
+                        roomName = roomName,
+                        roomSlug = roomSlug,
+                        isAdmin = isAdmin,
+                        onToggleMic = viewModel::toggleMic,
+                        onToggleCamera = viewModel::toggleCamera,
+                        onSwitchCamera = viewModel::switchCamera,
+                        onPinParticipant = viewModel::pinParticipant,
+                        onUnpinParticipant = viewModel::unpinParticipant,
+                        onLeave = {
+                            viewModel.leave()
+                            onLeave(false)
+                        },
+                        onEndMeeting = {
+                            viewModel.endMeeting { onLeave(false) }
+                        },
+                    )
+                }
             }
         }
     }

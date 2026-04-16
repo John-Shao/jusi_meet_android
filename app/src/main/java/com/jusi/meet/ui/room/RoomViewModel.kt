@@ -180,7 +180,12 @@ class RoomViewModel(
 
     private fun Participant.toUi(isLocal: Boolean): ParticipantUi {
         val cameraPub = getTrackPublication(Track.Source.CAMERA)
-        val videoTrack = cameraPub?.track as? VideoTrack
+        // When a participant turns off their camera, LiveKit typically mutes
+        // the publication instead of unpublishing — `cameraPub.track` stays
+        // non-null, and handing a muted track to VideoTrackView would keep
+        // painting the last received frame (frozen image). Treat muted as
+        // "no video" so the avatar placeholder kicks in.
+        val videoTrack = if (cameraPub?.muted == false) cameraPub.track as? VideoTrack else null
         val id = identity?.value ?: sid.value
         return ParticipantUi(
             identity = id,

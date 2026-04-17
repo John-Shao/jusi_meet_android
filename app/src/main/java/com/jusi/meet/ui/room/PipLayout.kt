@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.RectangleShape
 import io.livekit.android.room.Room
 
 /**
@@ -31,11 +32,17 @@ fun PipLayout(room: Room, state: RoomUiState) {
             .background(Color.Black),
     ) {
         speaker?.let {
+            // Rectangle shape (no rounded corners): the PiP window already has
+            // its own system-drawn rounded corners; letting the tile draw a
+            // second, tighter 12dp radius creates black slivers in the four
+            // corners where the tile is clipped but the outer Box background
+            // shows through.
             ParticipantTile(
                 room = room,
                 participant = it,
                 modifier = Modifier.fillMaxSize(),
                 showPinButton = false,
+                shape = RectangleShape,
             )
         }
     }

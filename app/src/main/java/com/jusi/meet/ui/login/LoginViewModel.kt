@@ -24,6 +24,10 @@ data class LoginUiState(
     val resendCooldown: Int = 0,
     val codeSent: Boolean = false,
     val errorMessage: String? = null,
+    /** Phone number that the currently-running cooldown applies to. The
+     *  cooldown only blocks [sendOtp] when the user is still targeting this
+     *  same number; once they edit the phone input the block lifts. */
+    val lastSentPhone: String? = null,
 )
 
 class LoginViewModel(
@@ -51,7 +55,11 @@ class LoginViewModel(
             _state.update { it.copy(errorMessage = ErrorKey.PHONE_FORMAT.name) }
             return
         }
-        if (_state.value.isSendingOtp || _state.value.resendCooldown > 0) return
+        if (_state.value.isSendingOtp) return
+        // Cooldown only blocks a resend when the target phone hasn't changed.
+        // After 返回 + edit-phone, the user is requesting a fresh OTP for a
+        // different number and should not be silently rate-limited.
+        if (_state.value.resendCooldown > 0 && _state.value.lastSentPhone == phone) return
 
         _state.update { it.copy(isSendingOtp = true, errorMessage = null) }
         viewModelScope.launch {
@@ -62,6 +70,7 @@ class LoginViewModel(
                             isSendingOtp = false,
                             codeSent = true,
                             resendCooldown = RESEND_COOLDOWN_SECONDS,
+                            lastSentPhone = phone,
                         )
                     }
                     runCooldown()

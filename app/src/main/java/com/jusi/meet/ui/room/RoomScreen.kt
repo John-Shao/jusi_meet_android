@@ -31,6 +31,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.Cameraswitch
@@ -38,8 +39,12 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.FiberManualRecord
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MicOff
+import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material.icons.filled.VideocamOff
 import androidx.compose.material3.Button
@@ -209,6 +214,7 @@ private fun RoomContent(
     }
     var toolbarsVisible by remember { mutableStateOf(true) }
     var showParticipants by remember { mutableStateOf(false) }
+    var showMore by remember { mutableStateOf(false) }
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAudioSheet by remember { mutableStateOf(false) }
     // Carry the user's last choice across Preview → Room handoff.
@@ -291,11 +297,11 @@ private fun RoomContent(
             BottomToolbar(
                 micEnabled = state.micEnabled,
                 cameraEnabled = state.cameraEnabled,
-                participantCount = state.participants.size,
                 onToggleMic = onToggleMic,
                 onToggleCamera = onToggleCamera,
                 onSwitchCamera = onSwitchCamera,
                 onShowParticipants = { showParticipants = true },
+                onShowMore = { showMore = true },
             )
         }
     }
@@ -306,6 +312,11 @@ private fun RoomContent(
             participants = state.participants,
             onDismiss = { showParticipants = false },
         )
+    }
+
+    // More-actions bottom sheet (share / record / interpret / settings — stubs)
+    if (showMore) {
+        MoreActionsSheet(onDismiss = { showMore = false })
     }
 
     // Audio output sheet
@@ -410,11 +421,11 @@ private fun TopToolbar(
 private fun BottomToolbar(
     micEnabled: Boolean,
     cameraEnabled: Boolean,
-    participantCount: Int,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
     onSwitchCamera: () -> Unit,
     onShowParticipants: () -> Unit,
+    onShowMore: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -425,8 +436,8 @@ private fun BottomToolbar(
                 )
             )
             .navigationBarsPadding()
-            .padding(horizontal = 8.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+            .padding(horizontal = 12.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ControlButton(
@@ -452,6 +463,12 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_participants),
             isOn = true,
             onClick = onShowParticipants,
+        )
+        ControlButton(
+            icon = Icons.Default.MoreHoriz,
+            label = stringResource(R.string.room_action_more),
+            isOn = true,
+            onClick = onShowMore,
         )
     }
 }
@@ -556,6 +573,79 @@ private fun ParticipantsSheet(
             }
             Spacer(Modifier.height(24.dp))
         }
+    }
+}
+
+// ── More-actions bottom sheet ────────────────────────────────────────────
+
+/**
+ * Feishu-style "更多" sheet with entries for features not yet implemented in
+ * the MVP (share / record / interpret / settings). Each tap flashes a
+ * "功能开发中" Toast so the user gets clear feedback without us silently
+ * swallowing the click.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MoreActionsSheet(onDismiss: () -> Unit) {
+    val sheetState = rememberModalBottomSheetState()
+    val context = LocalContext.current
+    val comingSoon = stringResource(R.string.room_more_coming_soon)
+    val showStub: () -> Unit = {
+        android.widget.Toast.makeText(context, comingSoon, android.widget.Toast.LENGTH_SHORT).show()
+    }
+
+    // Sheet-specific styling: the default ControlButton colours target the
+    // dark in-meeting overlay (white label, semi-transparent white bg). On
+    // the light ModalBottomSheet surface those become unreadable, so we feed
+    // surface-aware colours here.
+    val sheetBg = MaterialTheme.colorScheme.surfaceVariant
+    val sheetTint = MaterialTheme.colorScheme.onSurface
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 12.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+        ) {
+            ControlButton(
+                icon = Icons.AutoMirrored.Filled.ScreenShare,
+                label = stringResource(R.string.room_more_share),
+                isOn = true,
+                onClick = showStub,
+                labelColor = sheetTint,
+                iconBgColor = sheetBg,
+                iconTintColor = sheetTint,
+            )
+            ControlButton(
+                icon = Icons.Default.FiberManualRecord,
+                label = stringResource(R.string.room_more_record),
+                isOn = true,
+                onClick = showStub,
+                labelColor = sheetTint,
+                iconBgColor = sheetBg,
+                iconTintColor = sheetTint,
+            )
+            ControlButton(
+                icon = Icons.Default.Language,
+                label = stringResource(R.string.room_more_interpret),
+                isOn = true,
+                onClick = showStub,
+                labelColor = sheetTint,
+                iconBgColor = sheetBg,
+                iconTintColor = sheetTint,
+            )
+            ControlButton(
+                icon = Icons.Default.Settings,
+                label = stringResource(R.string.room_more_settings),
+                isOn = true,
+                onClick = showStub,
+                labelColor = sheetTint,
+                iconBgColor = sheetBg,
+                iconTintColor = sheetTint,
+            )
+        }
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -744,9 +834,14 @@ private fun ControlButton(
     label: String,
     isOn: Boolean,
     onClick: () -> Unit,
+    labelColor: Color = Color.White,
+    iconBgColor: Color? = null,
+    iconTintColor: Color? = null,
 ) {
-    val bgColor = if (isOn) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.15f)
-    val iconTint = if (isOn) Color.White else Color(0xFFFF6B6B)
+    val bgColor = iconBgColor
+        ?: if (isOn) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.15f)
+    val iconTint = iconTintColor
+        ?: if (isOn) Color.White else Color(0xFFFF6B6B)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FilledIconButton(
@@ -764,7 +859,7 @@ private fun ControlButton(
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = labelColor,
         )
     }
 }

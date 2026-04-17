@@ -41,6 +41,8 @@
     <string name="room_action_camera">Camera</string>
     <string name="room_action_switch_camera">Flip</string>
     <string name="room_action_participants">Members</string>
+    <string name="room_action_minimize">Minimize</string>
+    <string name="room_action_message">Messages</string>
     <string name="room_action_more">More</string>
     <string name="room_more_share">Share</string>
     <string name="room_more_record">Record</string>

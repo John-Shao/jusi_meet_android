@@ -41,6 +41,8 @@
     <string name="room_action_camera">摄像头</string>
     <string name="room_action_switch_camera">翻转</string>
     <string name="room_action_participants">参会人</string>
+    <string name="room_action_minimize">缩小</string>
+    <string name="room_action_message">消息</string>
     <string name="room_action_more">更多</string>
     <string name="room_more_share">共享</string>
     <string name="room_more_record">录制</string>

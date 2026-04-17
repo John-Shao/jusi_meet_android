@@ -78,6 +78,14 @@ class MainActivity : ComponentActivity() {
             .onFailure { Log.w(TAG, "enterPictureInPictureMode failed", it) }
     }
 
+    /** Called by the in-meeting "缩小" toolbar button to collapse into PiP. */
+    fun enterPipNow() {
+        if (!inMeeting) return
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
+        runCatching { enterPictureInPictureMode(buildPipParams(autoEnter = true)) }
+            .onFailure { Log.w(TAG, "enterPictureInPictureMode failed", it) }
+    }
+
     override fun onPictureInPictureModeChanged(
         isInPictureInPictureMode: Boolean,
         newConfig: Configuration,

@@ -31,11 +31,14 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
+import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.Cameraswitch
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Mic
@@ -212,6 +215,7 @@ private fun RoomContent(
             pinPreferredDevice = { device -> pinPreferredAudioDevice(device) },
         )
     }
+    val comingSoonText = stringResource(R.string.room_more_coming_soon)
     var toolbarsVisible by remember { mutableStateOf(true) }
     var showParticipants by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
@@ -282,7 +286,13 @@ private fun RoomContent(
                 roomName = roomName,
                 roomSlug = roomSlug,
                 audioOutput = audioOutput,
+                onMinimize = { (context as? MainActivity)?.enterPipNow() },
                 onSpeakerClick = { showAudioSheet = true },
+                onMessage = {
+                    android.widget.Toast
+                        .makeText(context, comingSoonText, android.widget.Toast.LENGTH_SHORT)
+                        .show()
+                },
                 onLeave = { showLeaveDialog = true },
             )
         }
@@ -346,7 +356,9 @@ private fun TopToolbar(
     roomName: String,
     roomSlug: String,
     audioOutput: AudioOutput,
+    onMinimize: () -> Unit,
     onSpeakerClick: () -> Unit,
+    onMessage: () -> Unit,
     onLeave: () -> Unit,
 ) {
     Box(
@@ -360,30 +372,45 @@ private fun TopToolbar(
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        // Left: speaker icon
-        IconButton(
-            onClick = onSpeakerClick,
-            modifier = Modifier
-                .align(Alignment.CenterStart)
-                .size(40.dp),
+        // Left cluster: minimize + speaker
+        Row(
+            modifier = Modifier.align(Alignment.CenterStart),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Icon(
-                imageVector = when (audioOutput) {
-                    AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
-                    AudioOutput.Earpiece -> Icons.Default.Hearing
-                    AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
-                },
-                contentDescription = stringResource(R.string.preview_speaker),
-                tint = Color.White,
-                modifier = Modifier.size(20.dp),
-            )
+            IconButton(
+                onClick = onMinimize,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CloseFullscreen,
+                    contentDescription = stringResource(R.string.room_action_minimize),
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            IconButton(
+                onClick = onSpeakerClick,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = when (audioOutput) {
+                        AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
+                        AudioOutput.Earpiece -> Icons.Default.Hearing
+                        AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
+                    },
+                    contentDescription = stringResource(R.string.preview_speaker),
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
 
-        // Center: room name + slug
+        // Center: room name + slug. Padding widened so the title never collides
+        // with the two-icon left cluster or the message+end right cluster.
         Column(
             modifier = Modifier
                 .align(Alignment.Center)
-                .padding(horizontal = 48.dp),
+                .padding(horizontal = 110.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
@@ -401,16 +428,33 @@ private fun TopToolbar(
             }
         }
 
-        // Right: leave/end button
-        TextButton(
-            onClick = onLeave,
+        // Right cluster: message + leave/end
+        Row(
             modifier = Modifier.align(Alignment.CenterEnd),
-            colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFFF4444)),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                text = stringResource(R.string.room_end),
-                style = MaterialTheme.typography.titleSmall,
-            )
+            IconButton(
+                onClick = onMessage,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.Chat,
+                    contentDescription = stringResource(R.string.room_action_message),
+                    tint = Color.White,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            IconButton(
+                onClick = onLeave,
+                modifier = Modifier.size(40.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CallEnd,
+                    contentDescription = stringResource(R.string.room_end),
+                    tint = Color(0xFFFF4444),
+                    modifier = Modifier.size(20.dp),
+                )
+            }
         }
     }
 }

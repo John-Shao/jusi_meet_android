@@ -37,6 +37,10 @@ class AuthRepository(
         tokenStore.accessToken = resp.access_token
         tokenStore.refreshToken = resp.refresh_token
         tokenStore.phone = phone
+        // Best-effort: pre-fetch the user's nickname so displayUsername uses it
+        // right away instead of falling back to the phone number. Failure here
+        // must not block login — the phone number fallback still works.
+        runCatching { fetchNickname() }
     }
 
     /** Fetch the user's nickname (firstName) from Keycloak Account API. */

@@ -290,9 +290,8 @@ private fun RoomContent(
             TopToolbar(
                 roomName = roomName,
                 roomSlug = roomSlug,
-                audioOutput = audioOutput,
                 onMinimize = { (context as? MainActivity)?.enterPipNow() },
-                onSpeakerClick = { showAudioSheet = true },
+                onSwitchCamera = onSwitchCamera,
                 onMessage = {
                     android.widget.Toast
                         .makeText(context, comingSoonText, android.widget.Toast.LENGTH_SHORT)
@@ -312,9 +311,10 @@ private fun RoomContent(
             BottomToolbar(
                 micEnabled = state.micEnabled,
                 cameraEnabled = state.cameraEnabled,
+                audioOutput = audioOutput,
                 onToggleMic = onToggleMic,
                 onToggleCamera = onToggleCamera,
-                onSwitchCamera = onSwitchCamera,
+                onSpeakerClick = { showAudioSheet = true },
                 onShowParticipants = { showParticipants = true },
                 onShowMore = { showMore = true },
             )
@@ -360,9 +360,8 @@ private fun RoomContent(
 private fun TopToolbar(
     roomName: String,
     roomSlug: String,
-    audioOutput: AudioOutput,
     onMinimize: () -> Unit,
-    onSpeakerClick: () -> Unit,
+    onSwitchCamera: () -> Unit,
     onMessage: () -> Unit,
     onLeave: () -> Unit,
 ) {
@@ -377,7 +376,7 @@ private fun TopToolbar(
             .statusBarsPadding()
             .padding(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        // Left cluster: minimize + speaker
+        // Left cluster: minimize + switch camera
         Row(
             modifier = Modifier.align(Alignment.CenterStart),
             verticalAlignment = Alignment.CenterVertically,
@@ -394,16 +393,12 @@ private fun TopToolbar(
                 )
             }
             IconButton(
-                onClick = onSpeakerClick,
+                onClick = onSwitchCamera,
                 modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
-                    imageVector = when (audioOutput) {
-                        AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
-                        AudioOutput.Earpiece -> Icons.Default.Hearing
-                        AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
-                    },
-                    contentDescription = stringResource(R.string.preview_speaker),
+                    imageVector = Icons.Default.Cameraswitch,
+                    contentDescription = stringResource(R.string.room_action_switch_camera),
                     tint = Color.White,
                     modifier = Modifier.size(RoomToolbarIconSize),
                 )
@@ -470,9 +465,10 @@ private fun TopToolbar(
 private fun BottomToolbar(
     micEnabled: Boolean,
     cameraEnabled: Boolean,
+    audioOutput: AudioOutput,
     onToggleMic: () -> Unit,
     onToggleCamera: () -> Unit,
-    onSwitchCamera: () -> Unit,
+    onSpeakerClick: () -> Unit,
     onShowParticipants: () -> Unit,
     onShowMore: () -> Unit,
 ) {
@@ -506,10 +502,14 @@ private fun BottomToolbar(
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
-            icon = Icons.Default.Cameraswitch,
-            label = stringResource(R.string.room_action_switch_camera),
+            icon = when (audioOutput) {
+                AudioOutput.Speaker -> Icons.AutoMirrored.Filled.VolumeUp
+                AudioOutput.Earpiece -> Icons.Default.Hearing
+                AudioOutput.Mute -> Icons.AutoMirrored.Filled.VolumeOff
+            },
+            label = stringResource(R.string.preview_speaker),
             isOn = true,
-            onClick = onSwitchCamera,
+            onClick = onSpeakerClick,
             iconSize = RoomToolbarIconSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )

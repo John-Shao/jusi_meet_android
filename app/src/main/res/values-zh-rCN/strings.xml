@@ -37,11 +37,10 @@
     <string name="room_title">会议中</string>
     <string name="room_slug_label">会议号：%1$s</string>
     <string name="room_connecting">正在连接…</string>
-    <string name="room_action_mic_on">静音</string>
-    <string name="room_action_mic_off">解除静音</string>
-    <string name="room_action_camera_on">开启视频</string>
-    <string name="room_action_camera_off">开启视频</string>
+    <string name="room_action_mic">麦克风</string>
+    <string name="room_action_camera">摄像头</string>
     <string name="room_action_switch_camera">翻转</string>
+    <string name="room_action_participants">参会人</string>
     <string name="room_action_hangup">挂断</string>
     <string name="room_end">结束</string>
     <string name="room_leave">离开会议</string>

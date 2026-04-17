@@ -37,11 +37,10 @@
     <string name="room_title">In meeting</string>
     <string name="room_slug_label">Meeting ID: %1$s</string>
     <string name="room_connecting">Connecting…</string>
-    <string name="room_action_mic_on">Mute</string>
-    <string name="room_action_mic_off">Unmute</string>
-    <string name="room_action_camera_on">Video</string>
-    <string name="room_action_camera_off">Video</string>
+    <string name="room_action_mic">Microphone</string>
+    <string name="room_action_camera">Camera</string>
     <string name="room_action_switch_camera">Flip</string>
+    <string name="room_action_participants">Members</string>
     <string name="room_action_hangup">Leave</string>
     <string name="room_end">End</string>
     <string name="room_leave">Leave meeting</string>

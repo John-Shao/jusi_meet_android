@@ -431,13 +431,13 @@ private fun BottomToolbar(
     ) {
         ControlButton(
             icon = if (micEnabled) Icons.Default.Mic else Icons.Default.MicOff,
-            label = stringResource(if (micEnabled) R.string.room_action_mic_on else R.string.room_action_mic_off),
+            label = stringResource(R.string.room_action_mic),
             isOn = micEnabled,
             onClick = onToggleMic,
         )
         ControlButton(
             icon = if (cameraEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
-            label = stringResource(if (cameraEnabled) R.string.room_action_camera_on else R.string.room_action_camera_off),
+            label = stringResource(R.string.room_action_camera),
             isOn = cameraEnabled,
             onClick = onToggleCamera,
         )
@@ -449,7 +449,7 @@ private fun BottomToolbar(
         )
         ControlButton(
             icon = Icons.Default.Groups,
-            label = stringResource(R.string.room_participants, participantCount),
+            label = stringResource(R.string.room_action_participants),
             isOn = true,
             onClick = onShowParticipants,
         )

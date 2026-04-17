@@ -83,6 +83,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -92,6 +93,10 @@ import com.jusi.meet.R
 import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
 import com.jusi.meet.audio.AudioOutputStore
+
+private val RoomToolbarIconButtonSize = 40.dp
+private val RoomToolbarIconSize = 24.dp
+private val BottomToolbarLabelSpacing = 2.dp
 
 @Composable
 fun RoomScreen(
@@ -241,14 +246,14 @@ private fun RoomContent(
     val statusTop = insets.statusBars.asPaddingValues().calculateTopPadding()
     val navBottom = insets.navigationBars.asPaddingValues().calculateBottomPadding()
     // Top toolbar content: vertical padding 8*2 + IconButton 40 = 56dp
-    // Bottom toolbar content: vertical padding 4*2 + icon 40 + 2 + label ~14 = ~64dp
+    // Bottom toolbar content: vertical padding 4*2 + icon button 40 + 2 + label ~16 = ~66dp
     val gap = 8.dp
     val topInset by animateDpAsState(
         targetValue = if (toolbarsVisible) statusTop + 56.dp + gap else 0.dp,
         label = "topInset",
     )
     val bottomInset by animateDpAsState(
-        targetValue = if (toolbarsVisible) navBottom + 64.dp + gap else 0.dp,
+        targetValue = if (toolbarsVisible) navBottom + 66.dp + gap else 0.dp,
         label = "bottomInset",
     )
 
@@ -379,18 +384,18 @@ private fun TopToolbar(
         ) {
             IconButton(
                 onClick = onMinimize,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
                     imageVector = Icons.Default.CloseFullscreen,
                     contentDescription = stringResource(R.string.room_action_minimize),
                     tint = Color.White,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(RoomToolbarIconSize),
                 )
             }
             IconButton(
                 onClick = onSpeakerClick,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
                     imageVector = when (audioOutput) {
@@ -400,7 +405,7 @@ private fun TopToolbar(
                     },
                     contentDescription = stringResource(R.string.preview_speaker),
                     tint = Color.White,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(RoomToolbarIconSize),
                 )
             }
         }
@@ -435,24 +440,24 @@ private fun TopToolbar(
         ) {
             IconButton(
                 onClick = onMessage,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Chat,
                     contentDescription = stringResource(R.string.room_action_message),
                     tint = Color.White,
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(RoomToolbarIconSize),
                 )
             }
             IconButton(
                 onClick = onLeave,
-                modifier = Modifier.size(40.dp),
+                modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
                     imageVector = Icons.Default.CallEnd,
                     contentDescription = stringResource(R.string.room_end),
                     tint = Color(0xFFFF4444),
-                    modifier = Modifier.size(20.dp),
+                    modifier = Modifier.size(RoomToolbarIconSize),
                 )
             }
         }
@@ -489,30 +494,40 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_mic),
             isOn = micEnabled,
             onClick = onToggleMic,
+            iconSize = RoomToolbarIconSize,
+            labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
             icon = if (cameraEnabled) Icons.Default.Videocam else Icons.Default.VideocamOff,
             label = stringResource(R.string.room_action_camera),
             isOn = cameraEnabled,
             onClick = onToggleCamera,
+            iconSize = RoomToolbarIconSize,
+            labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
             icon = Icons.Default.Cameraswitch,
             label = stringResource(R.string.room_action_switch_camera),
             isOn = true,
             onClick = onSwitchCamera,
+            iconSize = RoomToolbarIconSize,
+            labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
             icon = Icons.Default.Groups,
             label = stringResource(R.string.room_action_participants),
             isOn = true,
             onClick = onShowParticipants,
+            iconSize = RoomToolbarIconSize,
+            labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
             icon = Icons.Default.MoreHoriz,
             label = stringResource(R.string.room_action_more),
             isOn = true,
             onClick = onShowMore,
+            iconSize = RoomToolbarIconSize,
+            labelSpacing = BottomToolbarLabelSpacing,
         )
     }
 }
@@ -881,25 +896,28 @@ private fun ControlButton(
     labelColor: Color = Color.White,
     iconBgColor: Color? = null,
     iconTintColor: Color? = null,
+    iconSize: Dp = RoomToolbarIconSize,
+    labelSpacing: Dp = 6.dp,
 ) {
-    val bgColor = iconBgColor
-        ?: if (isOn) Color.White.copy(alpha = 0.2f) else Color.White.copy(alpha = 0.15f)
+    // Default: transparent bg -> flat icon + label. Sheet callers pass an
+    // explicit [iconBgColor] when they want the legacy circular container.
+    val bgColor = iconBgColor ?: Color.Transparent
     val iconTint = iconTintColor
         ?: if (isOn) Color.White else Color(0xFFFF6B6B)
 
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         FilledIconButton(
             onClick = onClick,
-            modifier = Modifier.size(40.dp),
+            modifier = Modifier.size(RoomToolbarIconButtonSize),
             shape = CircleShape,
             colors = IconButtonDefaults.filledIconButtonColors(
                 containerColor = bgColor,
                 contentColor = iconTint,
             ),
         ) {
-            Icon(imageVector = icon, contentDescription = label, modifier = Modifier.size(20.dp))
+            Icon(imageVector = icon, contentDescription = label, modifier = Modifier.size(iconSize))
         }
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(labelSpacing))
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,

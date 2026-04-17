@@ -89,7 +89,7 @@ class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
     private fun buildPipParams(autoEnter: Boolean): PictureInPictureParams {
         val builder = PictureInPictureParams.Builder()
-            .setAspectRatio(Rational(16, 9))
+            .setAspectRatio(Rational(3, 4))
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             builder.setAutoEnterEnabled(autoEnter)
         }

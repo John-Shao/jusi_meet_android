@@ -282,7 +282,7 @@ fun FocusLayout(
                 LazyRow(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(110.dp)
+                        .height(160.dp)
                         .padding(top = 4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -292,7 +292,7 @@ fun FocusLayout(
                             participant = p,
                             modifier = Modifier
                                 .fillMaxHeight()
-                                .width(160.dp),
+                                .width(120.dp),
                             showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },
@@ -317,7 +317,7 @@ fun FocusLayout(
                 LazyColumn(
                     modifier = Modifier
                         .fillMaxHeight()
-                        .width(160.dp)
+                        .width(120.dp)
                         .padding(start = 4.dp),
                     verticalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
@@ -327,7 +327,7 @@ fun FocusLayout(
                             participant = p,
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(100.dp),
+                                .height(160.dp),
                             showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },

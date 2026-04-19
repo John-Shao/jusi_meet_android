@@ -94,6 +94,9 @@
     <string name="error_auth_expired">Session expired, please sign in again</string>
     <string name="error_too_many_requests">Too many requests, please try again later</string>
     <string name="error_server">Service error, please try again later</string>
+    <string name="session_expired_title">Session expired</string>
+    <string name="session_expired_message">Please sign in again to continue.</string>
+    <string name="session_expired_action">Sign in again</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
 </resources>

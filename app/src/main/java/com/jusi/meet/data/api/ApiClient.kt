@@ -2,6 +2,7 @@ package com.jusi.meet.data.api
 
 import com.jusi.meet.BuildConfig
 import com.jusi.meet.data.auth.AuthInterceptor
+import com.jusi.meet.data.auth.SessionExpiredInterceptor
 import com.jusi.meet.data.auth.TokenStore
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -27,6 +28,7 @@ class ApiClient(tokenStore: TokenStore) {
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .addInterceptor(AuthInterceptor(tokenStore))
+        .addInterceptor(SessionExpiredInterceptor(tokenStore))
         .apply {
             if (BuildConfig.DEBUG) {
                 addInterceptor(

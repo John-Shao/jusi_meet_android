@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +25,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -31,6 +34,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
+import com.jusi.meet.data.auth.SessionState
 import com.jusi.meet.ui.login.LoginScreen
 import com.jusi.meet.ui.main.MainTabScreen
 import com.jusi.meet.ui.preview.PreviewMode
@@ -157,6 +161,41 @@ fun AppNav() {
     if (hostEndedSheetVisible) {
         HostEndedSheet(onDismiss = { hostEndedSheetVisible = false })
     }
+
+    // Global session-expired handler. Any authed 401 caught by
+    // SessionExpiredInterceptor flips this flag; we overlay a modal dialog
+    // on top of whatever screen is visible and, on confirm, wipe the back
+    // stack and navigate to Login.
+    val sessionExpired by SessionState.expired.collectAsStateWithLifecycle()
+    if (sessionExpired) {
+        SessionExpiredDialog(
+            onConfirm = {
+                SessionState.reset()
+                navController.navigate(Routes.LOGIN) {
+                    popUpTo(0) { inclusive = true }
+                    launchSingleTop = true
+                }
+            },
+        )
+    }
+}
+
+@Composable
+private fun SessionExpiredDialog(onConfirm: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = { /* non-dismissable — user must tap re-login */ },
+        title = { Text(stringResource(R.string.session_expired_title)) },
+        text = { Text(stringResource(R.string.session_expired_message)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(stringResource(R.string.session_expired_action))
+            }
+        },
+        properties = DialogProperties(
+            dismissOnBackPress = false,
+            dismissOnClickOutside = false,
+        ),
+    )
 }
 
 /**

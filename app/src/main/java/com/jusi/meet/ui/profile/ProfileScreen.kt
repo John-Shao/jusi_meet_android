@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jusi.meet.BuildConfig
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 
@@ -164,6 +165,18 @@ fun ProfileScreen(
                 text = stringResource(R.string.profile_sign_out),
                 style = MaterialTheme.typography.titleMedium,
             )
+        }
+
+        if (BuildConfig.DEBUG) {
+            Spacer(Modifier.height(12.dp))
+            TextButton(
+                onClick = { tokenStore.accessToken = "invalid.debug.token" },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) {
+                Text("Debug: 弄坏 access token")
+            }
         }
     }
 

@@ -22,16 +22,6 @@ enum class ErrorScope {
     AUTH_VERIFY_OTP,
 }
 
-/**
- * User-facing error + a hint on whether another attempt could succeed.
- *
- * [retryable] drives UI affordances: the Snackbar shows a 重试 action
- * only when this is `true`. It is NOT a correctness flag — retrying a
- * non-retryable error won't crash, it just won't help (e.g. 404 "会议号
- * 无效" stays 404).
- */
-data class UserError(val message: String, val retryable: Boolean)
-
 private val errorBodyAdapter by lazy {
     Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
@@ -41,71 +31,46 @@ private val errorBodyAdapter by lazy {
 
 /**
  * Translate a thrown exception from a Retrofit call into a user-facing
- * Chinese message plus a retryability hint.
+ * Chinese message.
  *
- * Retryability rules:
- * - `IOException` — transient network glitch → retryable.
- * - 401 — needs re-login, retry won't help → not retryable.
- * - 429 — try again later → retryable.
- * - 404 in `ROOM_FETCH` — wrong meeting ID → not retryable.
- * - 5xx — server hiccup → retryable.
- * - Other 4xx — client-side error surfaced from backend body → not
- *   retryable (e.g. "验证码错误", "仅房主可结束会议").
- * - Unknown — assume retryable (helpful default).
- */
-fun Throwable.toUserError(
-    context: Context,
-    scope: ErrorScope = ErrorScope.GENERIC,
-): UserError = when (this) {
-    is IOException -> UserError(context.getString(R.string.error_network), retryable = true)
-    is HttpException -> translateHttp(this, context, scope)
-    else -> UserError(context.getString(R.string.error_unknown), retryable = true)
-}
-
-/**
- * Convenience for call sites that only need the message (inline red
- * text, full-screen ErrorView). Wraps [toUserError].
+ * Precedence:
+ * 1. `IOException` → 网络异常。
+ * 2. Scope-specific HTTP overrides (e.g. ROOM_FETCH 404 → 会议号无效).
+ * 3. Global HTTP overrides for 401 / 429.
+ * 4. Backend-provided `error` / `detail` (mobile auth endpoints already
+ *    localise these into Chinese).
+ * 5. Family fallbacks (5xx → 服务异常、其他 → 出错了).
  */
 fun Throwable.toUserMessage(
     context: Context,
     scope: ErrorScope = ErrorScope.GENERIC,
-): String = toUserError(context, scope).message
+): String = when (this) {
+    is IOException -> context.getString(R.string.error_network)
+    is HttpException -> translateHttp(this, context, scope)
+    else -> context.getString(R.string.error_unknown)
+}
 
 private fun translateHttp(
     e: HttpException,
     context: Context,
     scope: ErrorScope,
-): UserError {
+): String {
     val code = e.code()
 
     if (scope == ErrorScope.ROOM_FETCH && code == 404) {
-        return UserError(context.getString(R.string.error_room_not_found), retryable = false)
+        return context.getString(R.string.error_room_not_found)
     }
-    if (code == 401) {
-        return UserError(context.getString(R.string.error_auth_expired), retryable = false)
-    }
-    if (code == 429) {
-        return UserError(context.getString(R.string.error_too_many_requests), retryable = true)
-    }
+    if (code == 401) return context.getString(R.string.error_auth_expired)
+    if (code == 429) return context.getString(R.string.error_too_many_requests)
 
     val bodyMessage = parseBody(e)?.let { body ->
         body.error?.takeIf { it.isNotBlank() }
             ?: body.detail?.takeIf { it.isNotBlank() }
     }
+    if (bodyMessage != null) return bodyMessage
 
-    if (code in 500..599) {
-        return UserError(
-            message = bodyMessage ?: context.getString(R.string.error_server),
-            retryable = true,
-        )
-    }
-
-    // Other 4xx: backend rejected the request on a client-side condition;
-    // the same payload won't succeed on retry.
-    if (bodyMessage != null) {
-        return UserError(message = bodyMessage, retryable = false)
-    }
-    return UserError(context.getString(R.string.error_unknown), retryable = true)
+    if (code in 500..599) return context.getString(R.string.error_server)
+    return context.getString(R.string.error_unknown)
 }
 
 private fun parseBody(e: HttpException): ApiErrorBody? {

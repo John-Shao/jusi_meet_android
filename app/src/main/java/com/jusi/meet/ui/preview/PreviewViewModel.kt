@@ -22,9 +22,8 @@ data class PreviewUiState(
     /**
      * Persistent error banner text. Null when no error is showing. The
      * banner stays visible until the user edits the meeting input or
-     * explicitly dismisses it — transient UX like Toast/Snackbar doesn't
-     * fit errors like "会议号无效" where the user needs time to read and
-     * correct the input.
+     * explicitly dismisses it — errors like "会议号无效" need enough time
+     * for the user to read and correct the input.
      */
     val errorMessage: String? = null,
 )

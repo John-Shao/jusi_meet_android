@@ -96,5 +96,4 @@
     <string name="error_server">Service error, please try again later</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
-    <string name="retry">Retry</string>
 </resources>

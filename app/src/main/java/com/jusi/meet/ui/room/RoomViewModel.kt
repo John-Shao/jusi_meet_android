@@ -11,6 +11,7 @@ import com.jusi.meet.data.chat.ChatMessageUi
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
 import com.jusi.meet.service.ConferenceForegroundService
+import com.jusi.meet.util.toUserMessage
 import io.livekit.android.events.DisconnectReason
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.events.collect
@@ -146,7 +147,7 @@ class RoomViewModel(
                 _state.update {
                     it.copy(
                         phase = RoomUiState.Phase.Error,
-                        errorMessage = e.localizedMessage ?: "Failed to connect",
+                        errorMessage = e.toUserMessage(getApplication()),
                     )
                 }
             }

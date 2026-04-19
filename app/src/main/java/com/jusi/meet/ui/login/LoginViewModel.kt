@@ -1,10 +1,14 @@
 package com.jusi.meet.ui.login
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.repository.AuthRepository
+import com.jusi.meet.util.ErrorScope
+import com.jusi.meet.util.toUserMessage
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -31,8 +35,9 @@ data class LoginUiState(
 )
 
 class LoginViewModel(
+    application: Application,
     private val authRepository: AuthRepository,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(LoginUiState())
     val state: StateFlow<LoginUiState> = _state.asStateFlow()
@@ -77,7 +82,7 @@ class LoginViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isSendingOtp = false, errorMessage = e.localizedMessage ?: ErrorKey.NETWORK.name)
+                        it.copy(isSendingOtp = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.AUTH_SEND_OTP))
                     }
                 },
             )
@@ -105,7 +110,7 @@ class LoginViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isVerifying = false, errorMessage = e.localizedMessage ?: ErrorKey.UNKNOWN.name)
+                        it.copy(isVerifying = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.AUTH_VERIFY_OTP))
                     }
                 },
             )
@@ -121,12 +126,14 @@ class LoginViewModel(
         }
     }
 
-    /** Marker keys the screen translates into localised strings. */
-    enum class ErrorKey { PHONE_FORMAT, OTP_FORMAT, NETWORK, UNKNOWN }
+    /** Marker keys for local validation — screen translates them into
+     *  localised strings. Backend errors go through [toUserMessage] and
+     *  arrive as ready-to-display strings. */
+    enum class ErrorKey { PHONE_FORMAT, OTP_FORMAT }
 
     class Factory(private val app: JusiMeetApp) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            LoginViewModel(app.authRepository) as T
+            LoginViewModel(app, app.authRepository) as T
     }
 }

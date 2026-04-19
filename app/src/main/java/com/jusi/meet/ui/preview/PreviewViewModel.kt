@@ -1,12 +1,16 @@
 package com.jusi.meet.ui.preview
 
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
-import com.jusi.meet.data.api.dto.LiveKitDto
+import com.jusi.meet.R
 import com.jusi.meet.data.auth.TokenStore
 import com.jusi.meet.data.repository.RoomRepository
+import com.jusi.meet.util.ErrorScope
+import com.jusi.meet.util.toUserMessage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -28,9 +32,10 @@ data class RoomTarget(
 )
 
 class PreviewViewModel(
+    application: Application,
     private val tokenStore: TokenStore,
     private val roomRepository: RoomRepository,
-) : ViewModel() {
+) : AndroidViewModel(application) {
 
     private val _state = MutableStateFlow(PreviewUiState())
     val state: StateFlow<PreviewUiState> = _state.asStateFlow()
@@ -52,7 +57,7 @@ class PreviewViewModel(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {
-                        _state.update { it.copy(isLoading = false, errorMessage = "Room has no LiveKit info") }
+                        _state.update { it.copy(isLoading = false, errorMessage = getApplication<Application>().getString(R.string.error_unknown)) }
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
@@ -67,7 +72,7 @@ class PreviewViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isLoading = false, errorMessage = e.localizedMessage ?: "Failed to create room")
+                        it.copy(isLoading = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.GENERIC))
                     }
                 },
             )
@@ -85,7 +90,7 @@ class PreviewViewModel(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {
-                        _state.update { it.copy(isLoading = false, errorMessage = "Room has no LiveKit info") }
+                        _state.update { it.copy(isLoading = false, errorMessage = getApplication<Application>().getString(R.string.error_unknown)) }
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
@@ -100,17 +105,22 @@ class PreviewViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isLoading = false, errorMessage = e.localizedMessage ?: "Failed to load room")
+                        it.copy(isLoading = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.ROOM_FETCH))
                     }
                 },
             )
         }
     }
 
+    fun consumeError() {
+        _state.update { it.copy(errorMessage = null) }
+    }
+
     class Factory(private val app: JusiMeetApp) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PreviewViewModel(
+                application = app,
                 tokenStore = app.tokenStore,
                 roomRepository = app.roomRepository,
             ) as T

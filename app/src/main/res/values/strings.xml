@@ -90,6 +90,10 @@
     <!-- Generic -->
     <string name="error_network">Network error. Please check your connection and try again.</string>
     <string name="error_unknown">Something went wrong. Please try again.</string>
+    <string name="error_room_not_found">Meeting ID invalid</string>
+    <string name="error_auth_expired">Session expired, please sign in again</string>
+    <string name="error_too_many_requests">Too many requests, please try again later</string>
+    <string name="error_server">Service error, please try again later</string>
     <string name="ok">OK</string>
     <string name="cancel">Cancel</string>
 </resources>

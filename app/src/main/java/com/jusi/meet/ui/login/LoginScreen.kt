@@ -192,7 +192,6 @@ private fun PhoneInputPage(
                 Spacer(Modifier.height(16.dp))
                 val text = when (rawMessage) {
                     LoginViewModel.ErrorKey.PHONE_FORMAT.name -> stringResource(R.string.login_error_phone_format)
-                    LoginViewModel.ErrorKey.NETWORK.name -> stringResource(R.string.error_network)
                     else -> rawMessage
                 }
                 Text(
@@ -309,8 +308,6 @@ private fun OtpInputPage(
                 Spacer(Modifier.height(16.dp))
                 val text = when (rawMessage) {
                     LoginViewModel.ErrorKey.OTP_FORMAT.name -> stringResource(R.string.login_error_otp_format)
-                    LoginViewModel.ErrorKey.NETWORK.name -> stringResource(R.string.error_network)
-                    LoginViewModel.ErrorKey.UNKNOWN.name -> stringResource(R.string.error_unknown)
                     else -> rawMessage
                 }
                 Text(

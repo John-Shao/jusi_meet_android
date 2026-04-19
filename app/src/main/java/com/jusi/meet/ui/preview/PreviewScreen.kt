@@ -100,6 +100,15 @@ fun PreviewScreen(
     val context = LocalContext.current
     val audioOutputController = remember(context) { AudioOutputController(context) }
 
+    // Toast-based transient error surface. ViewModel sets errorMessage;
+    // we show it once and immediately consume.
+    LaunchedEffect(state.errorMessage) {
+        state.errorMessage?.let { msg ->
+            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
+            previewViewModel.consumeError()
+        }
+    }
+
     // Permission handling.
     //
     // `required` gates the camera preview + join action. The extras in
@@ -286,12 +295,6 @@ fun PreviewScreen(
                     onClick = { showAudioSheet = true },
                     modifier = Modifier.weight(1f),
                 )
-            }
-
-            // Error message
-            state.errorMessage?.let { msg ->
-                Spacer(Modifier.height(12.dp))
-                Text(msg, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
 
             Spacer(Modifier.weight(1f))

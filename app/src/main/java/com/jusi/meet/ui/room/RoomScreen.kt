@@ -38,7 +38,7 @@ import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
 import androidx.compose.material.icons.filled.FlipCameraIos
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material.icons.filled.CloseFullscreen
+import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Groups
 import androidx.compose.material.icons.filled.Mic
@@ -395,7 +395,7 @@ private fun TopToolbar(
                 modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
-                    imageVector = Icons.Default.CloseFullscreen,
+                    imageVector = Icons.Default.FullscreenExit,
                     contentDescription = stringResource(R.string.room_action_minimize),
                     tint = Color.White,
                     modifier = Modifier.size(RoomToolbarIconSize),

@@ -36,7 +36,7 @@ import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
-import androidx.compose.material.icons.filled.Cameraswitch
+import androidx.compose.material.icons.filled.FlipCameraIos
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CloseFullscreen
 import androidx.compose.material.icons.filled.Hearing
@@ -406,7 +406,7 @@ private fun TopToolbar(
                 modifier = Modifier.size(RoomToolbarIconButtonSize),
             ) {
                 Icon(
-                    imageVector = Icons.Default.Cameraswitch,
+                    imageVector = Icons.Default.FlipCameraIos,
                     contentDescription = stringResource(R.string.room_action_switch_camera),
                     tint = Color.White,
                     modifier = Modifier.size(RoomToolbarIconSize),

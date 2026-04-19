@@ -45,5 +45,20 @@
       "Bash(grep -A 3 -i \"minify\\\\|proguard\" app/build.gradle)",
       "Read(//d/workspace/Meeting/jusi_meet_suite1.9/**)"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "tr -d '\\n' | grep -qoE '\"file_path\"[[:space:]]*:[[:space:]]*\"[^\"]*\\.(kt|kts|xml|gradle|properties)\"' && ./gradlew :app:assembleDebug",
+            "timeout": 300,
+            "statusMessage": "Building debug APK..."
+          }
+        ]
+      }
+    ]
   }
 }

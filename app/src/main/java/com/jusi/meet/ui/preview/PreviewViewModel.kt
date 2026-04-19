@@ -19,6 +19,13 @@ import kotlinx.coroutines.launch
 
 data class PreviewUiState(
     val isLoading: Boolean = false,
+    /**
+     * Persistent error banner text. Null when no error is showing. The
+     * banner stays visible until the user edits the meeting input or
+     * explicitly dismisses it — transient UX like Toast/Snackbar doesn't
+     * fit errors like "会议号无效" where the user needs time to read and
+     * correct the input.
+     */
     val errorMessage: String? = null,
 )
 
@@ -57,7 +64,12 @@ class PreviewViewModel(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {
-                        _state.update { it.copy(isLoading = false, errorMessage = getApplication<Application>().getString(R.string.error_unknown)) }
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = getApplication<Application>().getString(R.string.error_unknown),
+                            )
+                        }
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
@@ -72,7 +84,10 @@ class PreviewViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isLoading = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.GENERIC))
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = e.toUserMessage(getApplication(), ErrorScope.GENERIC),
+                        )
                     }
                 },
             )
@@ -90,7 +105,12 @@ class PreviewViewModel(
                 onSuccess = { room ->
                     val lk = room.livekit
                     if (lk == null) {
-                        _state.update { it.copy(isLoading = false, errorMessage = getApplication<Application>().getString(R.string.error_unknown)) }
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                errorMessage = getApplication<Application>().getString(R.string.error_unknown),
+                            )
+                        }
                     } else {
                         _state.update { it.copy(isLoading = false) }
                         onSuccess(RoomTarget(
@@ -105,15 +125,20 @@ class PreviewViewModel(
                 },
                 onFailure = { e ->
                     _state.update {
-                        it.copy(isLoading = false, errorMessage = e.toUserMessage(getApplication(), ErrorScope.ROOM_FETCH))
+                        it.copy(
+                            isLoading = false,
+                            errorMessage = e.toUserMessage(getApplication(), ErrorScope.ROOM_FETCH),
+                        )
                     }
                 },
             )
         }
     }
 
-    fun consumeError() {
-        _state.update { it.copy(errorMessage = null) }
+    fun dismissError() {
+        if (_state.value.errorMessage != null) {
+            _state.update { it.copy(errorMessage = null) }
+        }
     }
 
     class Factory(private val app: JusiMeetApp) : ViewModelProvider.Factory {

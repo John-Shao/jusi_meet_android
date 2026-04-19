@@ -26,6 +26,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.Mic
@@ -46,6 +48,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
@@ -99,15 +102,6 @@ fun PreviewScreen(
 
     val context = LocalContext.current
     val audioOutputController = remember(context) { AudioOutputController(context) }
-
-    // Toast-based transient error surface. ViewModel sets errorMessage;
-    // we show it once and immediately consume.
-    LaunchedEffect(state.errorMessage) {
-        state.errorMessage?.let { msg ->
-            android.widget.Toast.makeText(context, msg, android.widget.Toast.LENGTH_SHORT).show()
-            previewViewModel.consumeError()
-        }
-    }
 
     // Permission handling.
     //
@@ -165,6 +159,21 @@ fun PreviewScreen(
     // Mode-specific state
     var meetingName by remember { mutableStateOf(previewViewModel.defaultMeetingName) }
     var meetingId by remember { mutableStateOf("") }
+
+    val doAction: () -> Unit = {
+        val callback = { target: RoomTarget ->
+            onEnterRoom(target.roomId, target.livekitUrl, target.livekitToken, target.displayName, target.slug, target.isAdmin, micEnabled, cameraEnabled)
+        }
+        when (mode) {
+            PreviewMode.Create -> previewViewModel.createMeeting(meetingName, callback)
+            PreviewMode.Join -> previewViewModel.joinRoom(meetingId, callback)
+        }
+    }
+
+    // Auto-dismiss the inline error banner when the user edits the input.
+    LaunchedEffect(meetingName, meetingId) {
+        previewViewModel.dismissError()
+    }
 
     Scaffold(
         topBar = {
@@ -240,11 +249,14 @@ fun PreviewScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // Camera preview area
+            // Camera preview area. `weight(1f)` lets it absorb whatever
+            // vertical space is left after the text field, toggle row,
+            // banner slot, and action button — so the camera is as large
+            // as it can be without pushing anything off-screen.
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .aspectRatio(3f / 4f)
+                    .weight(1f)
                     .clip(RoundedCornerShape(16.dp))
                     .background(MaterialTheme.colorScheme.surfaceVariant),
                 contentAlignment = Alignment.Center,
@@ -259,7 +271,7 @@ fun PreviewScreen(
                 }
             }
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(16.dp))
 
             // Mic / Camera / Speaker toggles
             Row(
@@ -297,7 +309,15 @@ fun PreviewScreen(
                 )
             }
 
-            Spacer(Modifier.weight(1f))
+            // Inline error banner — shown just above the primary action so
+            // the user reads the error and reaches the button in one vertical
+            // glance. The slot is always reserved (even when empty) so the
+            // button position never shifts when the banner appears. Dismisses
+            // automatically when the input changes.
+            ErrorBanner(
+                message = state.errorMessage,
+                onDismiss = previewViewModel::dismissError,
+            )
 
             // Action button
             val actionLabel = when (mode) {
@@ -310,15 +330,7 @@ fun PreviewScreen(
             }
 
             Button(
-                onClick = {
-                    val callback = { target: RoomTarget ->
-                        onEnterRoom(target.roomId, target.livekitUrl, target.livekitToken, target.displayName, target.slug, target.isAdmin, micEnabled, cameraEnabled)
-                    }
-                    when (mode) {
-                        PreviewMode.Create -> previewViewModel.createMeeting(meetingName, callback)
-                        PreviewMode.Join -> previewViewModel.joinRoom(meetingId, callback)
-                    }
-                },
+                onClick = doAction,
                 enabled = actionEnabled,
                 modifier = Modifier
                     .fillMaxWidth()
@@ -351,6 +363,76 @@ fun PreviewScreen(
             onSelect = { audioOutput = it; showAudioSheet = false },
             onDismiss = { showAudioSheet = false },
         )
+    }
+}
+
+/**
+ * Fixed-height error slot placed between the device-control row and the
+ * primary action button. The slot always occupies [BannerSlotHeight], so
+ * the action button's position never shifts — the banner fades in and
+ * out inside the reserved space, vertically centred with 8dp margin on
+ * top and bottom.
+ */
+private val BannerContentHeight = 40.dp
+private val BannerSlotHeight = BannerContentHeight + 16.dp
+
+@Composable
+private fun ErrorBanner(
+    message: String?,
+    onDismiss: () -> Unit,
+) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(BannerSlotHeight)
+            .padding(vertical = 8.dp),
+    ) {
+        androidx.compose.animation.AnimatedVisibility(
+            visible = message != null,
+            enter = androidx.compose.animation.fadeIn(),
+            exit = androidx.compose.animation.fadeOut(),
+        ) {
+            // Keep the last non-null message while fading out so the
+            // exit transition has something to render.
+            val text = message ?: ""
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer,
+                shape = RoundedCornerShape(10.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(BannerContentHeight),
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        text = text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onErrorContainer,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = onDismiss,
+                        modifier = Modifier.size(24.dp),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Close,
+                            contentDescription = stringResource(R.string.cancel),
+                            tint = MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.size(16.dp),
+                        )
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -465,15 +547,15 @@ private fun ToggleCard(
             .clip(RoundedCornerShape(12.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .clickable(onClick = onClick)
-            .padding(vertical = 16.dp),
+            .padding(vertical = 12.dp),
     ) {
         Icon(
             imageVector = icon,
             contentDescription = label,
             tint = iconTint,
-            modifier = Modifier.size(28.dp),
+            modifier = Modifier.size(24.dp),
         )
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodySmall,

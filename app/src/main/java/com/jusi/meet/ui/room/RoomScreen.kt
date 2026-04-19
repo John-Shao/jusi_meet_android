@@ -40,7 +40,7 @@ import androidx.compose.material.icons.filled.FlipCameraIos
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Hearing
-import androidx.compose.material.icons.filled.Groups
+import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Language
@@ -529,7 +529,7 @@ private fun BottomToolbar(
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
-            icon = Icons.Default.Groups,
+            icon = Icons.Default.People,
             label = stringResource(R.string.room_action_participants),
             isOn = true,
             onClick = onShowParticipants,

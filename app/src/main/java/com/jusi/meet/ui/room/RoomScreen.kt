@@ -54,11 +54,9 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilledIconButton
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
@@ -96,6 +94,10 @@ import com.jusi.meet.audio.AudioOutputStore
 
 private val RoomToolbarIconButtonSize = 40.dp
 private val RoomToolbarIconSize = 24.dp
+// Bottom toolbar uses a tighter button container (= icon + 4dp each side)
+// so icons sit closer to their labels; 40dp leaves ~10dp visible gap which
+// the toolbar doesn't need.
+private val BottomToolbarIconButtonSize = 32.dp
 private val BottomToolbarLabelSpacing = 2.dp
 
 @Composable
@@ -488,8 +490,8 @@ private fun BottomToolbar(
                 )
             )
             .navigationBarsPadding()
-            .padding(horizontal = 12.dp, vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            .padding(vertical = 4.dp),
+        horizontalArrangement = Arrangement.Start,
         verticalAlignment = Alignment.CenterVertically,
     ) {
         ControlButton(
@@ -497,7 +499,9 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_mic),
             isOn = micEnabled,
             onClick = onToggleMic,
+            modifier = Modifier.weight(1f),
             iconSize = RoomToolbarIconSize,
+            iconButtonSize = BottomToolbarIconButtonSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
@@ -505,7 +509,9 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_camera),
             isOn = cameraEnabled,
             onClick = onToggleCamera,
+            modifier = Modifier.weight(1f),
             iconSize = RoomToolbarIconSize,
+            iconButtonSize = BottomToolbarIconButtonSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
@@ -517,7 +523,9 @@ private fun BottomToolbar(
             label = stringResource(R.string.preview_speaker),
             isOn = true,
             onClick = onSpeakerClick,
+            modifier = Modifier.weight(1f),
             iconSize = RoomToolbarIconSize,
+            iconButtonSize = BottomToolbarIconButtonSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
@@ -525,7 +533,9 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_participants),
             isOn = true,
             onClick = onShowParticipants,
+            modifier = Modifier.weight(1f),
             iconSize = RoomToolbarIconSize,
+            iconButtonSize = BottomToolbarIconButtonSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )
         ControlButton(
@@ -533,7 +543,9 @@ private fun BottomToolbar(
             label = stringResource(R.string.room_action_more),
             isOn = true,
             onClick = onShowMore,
+            modifier = Modifier.weight(1f),
             iconSize = RoomToolbarIconSize,
+            iconButtonSize = BottomToolbarIconButtonSize,
             labelSpacing = BottomToolbarLabelSpacing,
         )
     }
@@ -900,29 +912,45 @@ private fun ControlButton(
     label: String,
     isOn: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
     labelColor: Color = Color.White,
     iconBgColor: Color? = null,
     iconTintColor: Color? = null,
     iconSize: Dp = RoomToolbarIconSize,
+    iconButtonSize: Dp = RoomToolbarIconButtonSize,
     labelSpacing: Dp = 6.dp,
 ) {
-    // Default: transparent bg -> flat icon + label. Sheet callers pass an
-    // explicit [iconBgColor] when they want the legacy circular container.
+    // Default: transparent icon bg -> flat icon + label. Sheet callers pass
+    // an explicit [iconBgColor] when they want the circular icon container.
     val bgColor = iconBgColor ?: Color.Transparent
     val iconTint = iconTintColor
         ?: if (isOn) Color.White else Color(0xFFFF6B6B)
 
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        FilledIconButton(
-            onClick = onClick,
-            modifier = Modifier.size(RoomToolbarIconButtonSize),
-            shape = CircleShape,
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = bgColor,
-                contentColor = iconTint,
-            ),
+    // Whole column is the click target — tap on the icon, the label, or
+    // the space between all route to [onClick]. The caller-supplied
+    // [modifier] lets the parent Row give each button a weighted slot so
+    // neighbouring buttons butt up edge-to-edge, leaving no gaps through
+    // which a tap could leak to a page-level clickable (e.g. the
+    // toolbar-toggle wrapper).
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier
+            .clickable(onClick = onClick)
+            .padding(vertical = 4.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(iconButtonSize)
+                .clip(CircleShape)
+                .background(bgColor),
+            contentAlignment = Alignment.Center,
         ) {
-            Icon(imageVector = icon, contentDescription = label, modifier = Modifier.size(iconSize))
+            Icon(
+                imageVector = icon,
+                contentDescription = label,
+                tint = iconTint,
+                modifier = Modifier.size(iconSize),
+            )
         }
         Spacer(Modifier.height(labelSpacing))
         Text(

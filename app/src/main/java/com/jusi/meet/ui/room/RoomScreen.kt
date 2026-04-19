@@ -116,7 +116,7 @@ fun RoomScreen(
     val viewModel: RoomViewModel = viewModel(
         factory = RoomViewModel.Factory(
             app, roomId, livekitUrl, livekitToken, roomName,
-            initialMicEnabled, initialCameraEnabled,
+            initialMicEnabled, initialCameraEnabled, isAdmin,
         ),
     )
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -181,6 +181,7 @@ fun RoomScreen(
                         onSwitchCamera = viewModel::switchCamera,
                         onPinParticipant = viewModel::pinParticipant,
                         onUnpinParticipant = viewModel::unpinParticipant,
+                        onSendMessage = viewModel::sendChatMessage,
                         onLeave = {
                             viewModel.leave()
                             onLeave(false)
@@ -209,6 +210,7 @@ private fun RoomContent(
     onSwitchCamera: () -> Unit,
     onPinParticipant: (String) -> Unit,
     onUnpinParticipant: () -> Unit,
+    onSendMessage: (String) -> Unit,
     onLeave: () -> Unit,
     onEndMeeting: () -> Unit,
 ) {
@@ -220,12 +222,12 @@ private fun RoomContent(
             pinPreferredDevice = { device -> pinPreferredAudioDevice(device) },
         )
     }
-    val comingSoonText = stringResource(R.string.room_more_coming_soon)
     var toolbarsVisible by remember { mutableStateOf(true) }
     var showParticipants by remember { mutableStateOf(false) }
     var showMore by remember { mutableStateOf(false) }
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAudioSheet by remember { mutableStateOf(false) }
+    var showMessages by remember { mutableStateOf(false) }
     // Carry the user's last choice across Preview → Room handoff.
     var audioOutput by remember { mutableStateOf(AudioOutputStore.lastChoice) }
 
@@ -292,11 +294,7 @@ private fun RoomContent(
                 roomSlug = roomSlug,
                 onMinimize = { (context as? MainActivity)?.enterPipNow() },
                 onSwitchCamera = onSwitchCamera,
-                onMessage = {
-                    android.widget.Toast
-                        .makeText(context, comingSoonText, android.widget.Toast.LENGTH_SHORT)
-                        .show()
-                },
+                onMessage = { showMessages = true },
                 onLeave = { showLeaveDialog = true },
             )
         }
@@ -340,6 +338,15 @@ private fun RoomContent(
             current = audioOutput,
             onSelect = { audioOutput = it; showAudioSheet = false },
             onDismiss = { showAudioSheet = false },
+        )
+    }
+
+    // In-meeting messages full-screen panel
+    if (showMessages) {
+        MessagesPanel(
+            messages = state.messages,
+            onSend = onSendMessage,
+            onDismiss = { showMessages = false },
         )
     }
 

@@ -7,6 +7,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
+import com.jusi.meet.data.chat.ChatMessageUi
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
 import com.jusi.meet.service.ConferenceForegroundService
@@ -21,6 +22,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeout
@@ -62,6 +64,8 @@ data class RoomUiState(
      * on its last frame even though fresh publications are subscribed.
      */
     val sessionGeneration: Int = 0,
+    /** In-meeting chat messages (oldest first). Ephemeral — cleared on disconnect. */
+    val messages: List<ChatMessageUi> = emptyList(),
 ) {
     enum class Phase { Connecting, Connected, Error, Disconnected }
 }
@@ -75,6 +79,7 @@ class RoomViewModel(
     private val roomRepository: RoomRepository,
     private val initialMicEnabled: Boolean = true,
     private val initialCameraEnabled: Boolean = true,
+    private val isAdmin: Boolean = false,
 ) : AndroidViewModel(application) {
 
     private val controller = LiveKitController(application)
@@ -135,6 +140,7 @@ class RoomViewModel(
             }.onSuccess {
                 _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
                 ConferenceForegroundService.start(getApplication(), roomName)
+                registerChatHandler()
                 refreshParticipants()
             }.onFailure { e ->
                 _state.update {
@@ -168,6 +174,10 @@ class RoomViewModel(
                     }
 
                     is RoomEvent.Disconnected -> {
+                        // Ephemeral chat, matches web: "消息仅对发送时在场的
+                        // 参与者可见。所有消息将在通话结束时删除。"
+                        _state.update { it.copy(messages = emptyList()) }
+
                         // How the backend ends a meeting: the `/end/` endpoint
                         // calls LiveKit's `remove_participant` for every
                         // participant (see backend
@@ -384,6 +394,71 @@ class RoomViewModel(
         controller.disconnect()
     }
 
+    // ── In-meeting chat ────────────────────────────────────────────────
+
+    /**
+     * Register the LiveKit Text Stream handler for the reserved `lk.chat`
+     * topic. LiveKit does not echo local sends to the handler, so local
+     * messages are appended separately in [sendChatMessage]. Registration
+     * uses `runCatching` inside the controller, so a no-op on reconnect
+     * (handler already present) is safe.
+     */
+    private fun registerChatHandler() {
+        controller.registerChatHandler { reader, identity ->
+            viewModelScope.launch {
+                val text = reader.flow.toList().joinToString(separator = "")
+                val sender = controller.room.remoteParticipants.values
+                    .firstOrNull { it.identity == identity }
+                val displayName = sender?.name?.takeIf { it.isNotBlank() }
+                    ?: sender?.identity?.value
+                    ?: identity.value
+                appendMessage(
+                    ChatMessageUi(
+                        id = reader.info.id,
+                        senderIdentity = identity.value,
+                        senderName = displayName,
+                        isLocal = false,
+                        isHost = false,
+                        text = text,
+                        timestampMs = reader.info.timestampMs,
+                    ),
+                )
+            }
+        }
+    }
+
+    fun sendChatMessage(text: String) {
+        val trimmed = text.trim()
+        if (trimmed.isEmpty()) return
+        viewModelScope.launch {
+            controller.sendChatText(trimmed)
+                .onSuccess { info ->
+                    val local = controller.room.localParticipant
+                    val name = local.name?.takeIf { it.isNotBlank() }
+                        ?: local.identity?.value
+                        ?: "—"
+                    appendMessage(
+                        ChatMessageUi(
+                            id = info.id,
+                            senderIdentity = local.identity?.value ?: "",
+                            senderName = name,
+                            isLocal = true,
+                            isHost = isAdmin,
+                            text = trimmed,
+                            timestampMs = info.timestampMs,
+                        ),
+                    )
+                }
+                .onFailure { e ->
+                    Log.w(TAG, "sendChatMessage failed", e)
+                }
+        }
+    }
+
+    private fun appendMessage(message: ChatMessageUi) {
+        _state.update { it.copy(messages = it.messages + message) }
+    }
+
     /** End the room via backend API, then disconnect. Only owner should call this. */
     fun endMeeting(onDone: () -> Unit) {
         userInitiatedLeave = true
@@ -410,13 +485,14 @@ class RoomViewModel(
         private val roomName: String,
         private val initialMicEnabled: Boolean = true,
         private val initialCameraEnabled: Boolean = true,
+        private val isAdmin: Boolean = false,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val app = application as JusiMeetApp
             return RoomViewModel(
                 application, roomId, livekitUrl, livekitToken, roomName,
-                app.roomRepository, initialMicEnabled, initialCameraEnabled,
+                app.roomRepository, initialMicEnabled, initialCameraEnabled, isAdmin,
             ) as T
         }
     }

@@ -11,6 +11,9 @@ import io.livekit.android.RoomOptions
 import io.livekit.android.events.EventListenable
 import io.livekit.android.events.RoomEvent
 import io.livekit.android.room.Room
+import io.livekit.android.room.datastream.StreamTextOptions
+import io.livekit.android.room.datastream.TextStreamInfo
+import io.livekit.android.room.datastream.incoming.TextStreamHandler
 import io.livekit.android.room.track.LocalVideoTrack
 import io.livekit.android.room.track.Track
 
@@ -95,10 +98,28 @@ class LiveKitController(appContext: Context) {
     }
 
     fun release() {
+        runCatching { room.unregisterTextStreamHandler(CHAT_TOPIC) }
         runCatching { room.release() }
         // When we provide our own AudioDeviceModule via LiveKitOverrides, the
         // SDK leaves ownership with us (see AudioOptions.audioDeviceModule
         // docs) — so we must release it ourselves to avoid a leak.
         callAudioDeviceModule.release()
+    }
+
+    // ── In-meeting chat (LiveKit Text Streams) ──────────────────────────
+    //
+    // The web client's `useChat()` hook writes to the reserved `lk.chat`
+    // topic via Text Streams. We mirror that on Android so messages
+    // interoperate in both directions.
+
+    suspend fun sendChatText(text: String): Result<TextStreamInfo> =
+        room.localParticipant.sendText(text, StreamTextOptions(topic = CHAT_TOPIC))
+
+    fun registerChatHandler(handler: TextStreamHandler) {
+        runCatching { room.registerTextStreamHandler(CHAT_TOPIC, handler) }
+    }
+
+    companion object {
+        const val CHAT_TOPIC = "lk.chat"
     }
 }

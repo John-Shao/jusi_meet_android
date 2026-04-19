@@ -64,6 +64,10 @@
     <string name="room_host_ended_title">Host ended the meeting</string>
     <string name="room_host_ended_ack">OK</string>
     <string name="room_host_ended_ack_countdown">OK (%1$ds)</string>
+    <string name="room_messages_title">Messages</string>
+    <string name="room_message_input_hint">Send a message…</string>
+    <string name="room_message_empty">No messages yet</string>
+    <string name="room_message_host_tag">Host</string>
 
     <!-- Ongoing-meeting foreground-service notification -->
     <string name="meeting_notification_channel_name">Meeting in progress</string>

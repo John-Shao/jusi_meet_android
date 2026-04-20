@@ -39,7 +39,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -92,13 +91,13 @@ fun ProfileScreen(
                 modifier = Modifier
                     .size(72.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFF3366FF)),
+                    .background(MaterialTheme.colorScheme.primary),
                 contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(40.dp),
                 )
             }
@@ -158,7 +157,7 @@ fun ProfileScreen(
             shape = RoundedCornerShape(12.dp),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.surface,
-                contentColor = Color(0xFFFF4444),
+                contentColor = MaterialTheme.colorScheme.error,
             ),
         ) {
             Text(
@@ -207,7 +206,7 @@ fun ProfileScreen(
                     app.authRepository.signOut()
                     onSignedOut()
                 }) {
-                    Text(stringResource(R.string.ok), color = Color(0xFFFF4444))
+                    Text(stringResource(R.string.ok), color = MaterialTheme.colorScheme.error)
                 }
             },
             dismissButton = {

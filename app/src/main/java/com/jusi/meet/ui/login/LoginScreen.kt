@@ -20,7 +20,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -105,7 +104,7 @@ private fun PhoneInputPage(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White, RoundedCornerShape(8.dp))
+                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
                     .padding(horizontal = 16.dp, vertical = 14.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
@@ -167,21 +166,16 @@ private fun PhoneInputPage(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF222222),
-                    disabledContainerColor = Color(0xFFBBBBBB),
-                ),
             ) {
                 if (state.isSendingOtp) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(20.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                 } else {
                     Text(
                         text = stringResource(R.string.login_next),
-                        color = Color.White,
                         style = MaterialTheme.typography.titleMedium,
                     )
                 }
@@ -277,12 +271,6 @@ private fun OtpInputPage(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(26.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFBBBBBB),
-                    disabledContainerColor = Color(0xFFBBBBBB),
-                    contentColor = Color.White,
-                    disabledContentColor = Color.White,
-                ),
             ) {
                 if (state.resendCooldown > 0) {
                     Text(
@@ -358,10 +346,10 @@ private fun OtpBoxes(
                         .height(56.dp)
                         .border(
                             width = if (isCurrent) 2.dp else 1.dp,
-                            color = if (isCurrent) Color(0xFF222222) else MaterialTheme.colorScheme.outline,
+                            color = if (isCurrent) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline,
                             shape = RoundedCornerShape(8.dp),
                         )
-                        .background(Color.White, RoundedCornerShape(8.dp)),
+                        .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp)),
                     contentAlignment = Alignment.Center,
                 ) {
                     Text(

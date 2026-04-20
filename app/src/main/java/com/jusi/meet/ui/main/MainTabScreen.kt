@@ -33,7 +33,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -52,8 +51,6 @@ private val tabs = listOf(
     TabItem(R.string.tab_meeting, Icons.Filled.Videocam, Icons.Filled.Videocam),
     TabItem(R.string.tab_profile, Icons.Filled.Person, Icons.Filled.Person),
 )
-
-private val ActiveColor = Color(0xFF3366FF)
 
 @Composable
 fun MainTabScreen(
@@ -109,7 +106,7 @@ private fun CompactTabBar(
         ) {
             tabs.forEachIndexed { index, tab ->
                 val selected = selectedTab == index
-                val color = if (selected) ActiveColor else MaterialTheme.colorScheme.onSurfaceVariant
+                val color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
 
                 Column(
                     horizontalAlignment = Alignment.CenterHorizontally,

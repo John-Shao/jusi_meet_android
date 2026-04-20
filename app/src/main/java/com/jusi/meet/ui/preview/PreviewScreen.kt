@@ -213,7 +213,7 @@ fun PreviewScreen(
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 48.dp),
-                        color = Color(0xFF3366FF),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
                 PreviewMode.Join -> {
@@ -242,7 +242,7 @@ fun PreviewScreen(
                     )
                     HorizontalDivider(
                         modifier = Modifier.padding(horizontal = 48.dp),
-                        color = Color(0xFF3366FF),
+                        color = MaterialTheme.colorScheme.primary,
                     )
                 }
             }
@@ -336,20 +336,18 @@ fun PreviewScreen(
                     .fillMaxWidth()
                     .height(52.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF3366FF)),
             ) {
                 if (state.isLoading) {
                     CircularProgressIndicator(
                         strokeWidth = 2.dp,
                         modifier = Modifier.size(20.dp),
-                        color = Color.White,
+                        color = MaterialTheme.colorScheme.onPrimary,
                     )
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
                     text = actionLabel,
                     style = MaterialTheme.typography.titleMedium,
-                    color = Color.White,
                 )
             }
 
@@ -506,21 +504,21 @@ private fun AudioOutputOption(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.size(24.dp),
         )
         Spacer(Modifier.width(16.dp))
         Text(
             text = label,
             style = MaterialTheme.typography.bodyLarge,
-            color = if (isSelected) Color(0xFF3366FF) else MaterialTheme.colorScheme.onSurface,
+            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
             modifier = Modifier.weight(1f),
         )
         if (isSelected) {
             Icon(
                 imageVector = Icons.Default.Check,
                 contentDescription = null,
-                tint = Color(0xFF3366FF),
+                tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(24.dp),
             )
         }

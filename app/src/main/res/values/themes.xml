@@ -5,6 +5,5 @@
          and disables the action bar so Compose owns the whole window. -->
     <style name="Theme.JusiMeet" parent="Theme.AppCompat.DayNight.NoActionBar">
         <item name="android:statusBarColor">@android:color/transparent</item>
-        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>

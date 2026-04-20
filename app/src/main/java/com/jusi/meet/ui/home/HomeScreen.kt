@@ -49,16 +49,16 @@ fun HomeScreen(
             ActionCard(
                 icon = Icons.Default.Videocam,
                 label = stringResource(R.string.home_create_meeting),
-                backgroundColor = Color(0xFFD6E4FF),
-                iconTint = Color(0xFF3366FF),
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 onClick = onCreateMeeting,
                 modifier = Modifier.weight(1f),
             )
             ActionCard(
                 icon = Icons.Default.AddBox,
                 label = stringResource(R.string.home_join_meeting),
-                backgroundColor = Color(0xFFD6E4FF),
-                iconTint = Color(0xFF3366FF),
+                backgroundColor = MaterialTheme.colorScheme.primaryContainer,
+                iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                 onClick = onJoinMeeting,
                 modifier = Modifier.weight(1f),
             )

@@ -58,10 +58,6 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-private val BubbleColor = Color(0xFFEDF1FF)
-private val BrandBlue = Color(0xFF4B7CF3)
-private val HostTagBg = Color(0xFFBFC3CC)
-
 @Composable
 fun MessagesPanel(
     messages: List<ChatMessageUi>,
@@ -180,14 +176,14 @@ private fun MessageRow(message: ChatMessageUi) {
             }
             Spacer(Modifier.height(4.dp))
             Surface(
-                color = BubbleColor,
+                color = MaterialTheme.colorScheme.surfaceVariant,
                 shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.widthIn(max = maxBubbleWidth),
             ) {
                 Text(
                     text = message.text,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
                 )
             }
@@ -221,13 +217,13 @@ private fun Avatar(name: String, identity: String) {
 @Composable
 private fun HostTag() {
     Surface(
-        color = HostTagBg,
+        color = MaterialTheme.colorScheme.secondary,
         shape = RoundedCornerShape(3.dp),
     ) {
         Text(
             text = stringResource(R.string.room_message_host_tag),
             style = MaterialTheme.typography.labelSmall,
-            color = Color.White,
+            color = MaterialTheme.colorScheme.onSecondary,
             modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
         )
     }
@@ -285,7 +281,7 @@ private fun InputBar(onSend: (String) -> Unit) {
             Icon(
                 imageVector = Icons.AutoMirrored.Filled.Send,
                 contentDescription = null,
-                tint = if (isEnabled) BrandBlue else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                tint = if (isEnabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
             )
         }
     }

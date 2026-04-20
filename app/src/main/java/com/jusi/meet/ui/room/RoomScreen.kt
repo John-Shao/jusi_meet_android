@@ -1,6 +1,11 @@
 package com.jusi.meet.ui.room
 
+import android.app.Activity
 import android.app.Application
+import android.content.Intent
+import android.media.projection.MediaProjectionManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.fadeIn
@@ -33,6 +38,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
+import androidx.compose.material.icons.automirrored.filled.StopScreenShare
 import androidx.compose.material.icons.automirrored.filled.VolumeOff
 import androidx.compose.material.icons.automirrored.filled.VolumeUp
 import androidx.compose.material.icons.filled.CallEnd
@@ -42,8 +48,10 @@ import androidx.compose.material.icons.filled.FullscreenExit
 import androidx.compose.material.icons.filled.Hearing
 import androidx.compose.material.icons.filled.People
 import androidx.compose.material.icons.filled.Mic
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Person
@@ -68,6 +76,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -91,6 +100,7 @@ import com.jusi.meet.R
 import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
 import com.jusi.meet.audio.AudioOutputStore
+import kotlinx.coroutines.launch
 
 private val RoomToolbarIconButtonSize = 40.dp
 private val RoomToolbarIconSize = 24.dp
@@ -171,7 +181,7 @@ fun RoomScreen(
                 RoomUiState.Phase.Error -> ErrorView(state.errorMessage) { onLeave(false) }
                 RoomUiState.Phase.Connected,
                 RoomUiState.Phase.Disconnected -> {
-                    RoomContent(
+                        RoomContent(
                         state = state,
                         room = viewModel.room,
                         pinPreferredAudioDevice = viewModel.callAudioDeviceModule::setPreferredDevice,
@@ -184,6 +194,8 @@ fun RoomScreen(
                         onPinParticipant = viewModel::pinParticipant,
                         onUnpinParticipant = viewModel::unpinParticipant,
                         onSendMessage = viewModel::sendChatMessage,
+                        onStartScreenShare = viewModel::startScreenShare,
+                        onStopScreenShare = viewModel::stopScreenShare,
                         onLeave = {
                             viewModel.leave()
                             onLeave(false)
@@ -213,10 +225,13 @@ private fun RoomContent(
     onPinParticipant: (String) -> Unit,
     onUnpinParticipant: () -> Unit,
     onSendMessage: (String) -> Unit,
+    onStartScreenShare: suspend (Intent) -> Boolean,
+    onStopScreenShare: () -> Unit,
     onLeave: () -> Unit,
     onEndMeeting: () -> Unit,
 ) {
     val context = LocalContext.current
+    val scope = rememberCoroutineScope()
     val audioOutputController = remember(context, room) {
         AudioOutputController(
             context = context,
@@ -230,8 +245,30 @@ private fun RoomContent(
     var showLeaveDialog by remember { mutableStateOf(false) }
     var showAudioSheet by remember { mutableStateOf(false) }
     var showMessages by remember { mutableStateOf(false) }
+    var showShareChooser by remember { mutableStateOf(false) }
     // Carry the user's last choice across Preview → Room handoff.
     var audioOutput by remember { mutableStateOf(AudioOutputStore.lastChoice) }
+
+    // MediaProjection consent launcher. The system picker — especially on
+    // Android 14+ — lets the user choose "Entire screen" or "A single app"
+    // right in the consent dialog. We don't need our own app picker. On
+    // older platforms the dialog only offers whole-screen capture, which
+    // still matches Tencent Meeting's behaviour there.
+    val mediaProjectionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.StartActivityForResult(),
+    ) { result ->
+        val data = result.data
+        if (result.resultCode == Activity.RESULT_OK && data != null) {
+            scope.launch { onStartScreenShare(data) }
+        }
+    }
+
+    val requestScreenCapture: () -> Unit = {
+        val mpm = context.getSystemService(MediaProjectionManager::class.java)
+        if (mpm != null) {
+            mediaProjectionLauncher.launch(mpm.createScreenCaptureIntent())
+        }
+    }
 
     DisposableEffect(audioOutputController) {
         audioOutputController.start()
@@ -329,9 +366,40 @@ private fun RoomContent(
         )
     }
 
-    // More-actions bottom sheet (share / record / interpret / settings — stubs)
+    // More-actions bottom sheet (share / record / interpret / settings)
     if (showMore) {
-        MoreActionsSheet(onDismiss = { showMore = false })
+        MoreActionsSheet(
+            localScreenSharing = state.localScreenSharing,
+            onShareClick = {
+                showMore = false
+                if (state.localScreenSharing) {
+                    onStopScreenShare()
+                } else {
+                    showShareChooser = true
+                }
+            },
+            onDismiss = { showMore = false },
+        )
+    }
+
+    // Share chooser: screen vs. whiteboard. Matches Tencent Meeting's
+    // "共享屏幕 / 共享白板" two-option sheet. The system MediaProjection dialog
+    // handles the finer "entire screen / single app" selection natively.
+    if (showShareChooser) {
+        val comingSoon = stringResource(R.string.room_more_coming_soon)
+        ScreenShareChooserSheet(
+            onShareScreen = {
+                showShareChooser = false
+                requestScreenCapture()
+            },
+            onShareWhiteboard = {
+                showShareChooser = false
+                android.widget.Toast.makeText(
+                    context, comingSoon, android.widget.Toast.LENGTH_SHORT,
+                ).show()
+            },
+            onDismiss = { showShareChooser = false },
+        )
     }
 
     // Audio output sheet
@@ -657,14 +725,17 @@ private fun ParticipantsSheet(
 // ── More-actions bottom sheet ────────────────────────────────────────────
 
 /**
- * Feishu-style "更多" sheet with entries for features not yet implemented in
- * the MVP (share / record / interpret / settings). Each tap flashes a
- * "功能开发中" Toast so the user gets clear feedback without us silently
- * swallowing the click.
+ * Feishu-style "更多" sheet. The Share entry is live (and flips to
+ * "Stop share" while we're publishing a screen-share track); the other
+ * entries are still MVP stubs that flash a "coming soon" toast.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun MoreActionsSheet(onDismiss: () -> Unit) {
+private fun MoreActionsSheet(
+    localScreenSharing: Boolean,
+    onShareClick: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val sheetState = rememberModalBottomSheetState()
     val context = LocalContext.current
     val comingSoon = stringResource(R.string.room_more_coming_soon)
@@ -678,6 +749,7 @@ private fun MoreActionsSheet(onDismiss: () -> Unit) {
     // surface-aware colours here.
     val sheetBg = MaterialTheme.colorScheme.surfaceVariant
     val sheetTint = MaterialTheme.colorScheme.onSurface
+    val shareTint = if (localScreenSharing) Color(0xFFFF4444) else sheetTint
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         Row(
@@ -687,13 +759,17 @@ private fun MoreActionsSheet(onDismiss: () -> Unit) {
             horizontalArrangement = Arrangement.SpaceBetween,
         ) {
             ControlButton(
-                icon = Icons.AutoMirrored.Filled.ScreenShare,
-                label = stringResource(R.string.room_more_share),
+                icon = if (localScreenSharing) Icons.AutoMirrored.Filled.StopScreenShare
+                    else Icons.AutoMirrored.Filled.ScreenShare,
+                label = stringResource(
+                    if (localScreenSharing) R.string.room_screen_share_stop
+                    else R.string.room_more_share
+                ),
                 isOn = true,
-                onClick = showStub,
-                labelColor = sheetTint,
+                onClick = onShareClick,
+                labelColor = shareTint,
                 iconBgColor = sheetBg,
-                iconTintColor = sheetTint,
+                iconTintColor = shareTint,
             )
             ControlButton(
                 icon = Icons.Default.FiberManualRecord,
@@ -724,6 +800,87 @@ private fun MoreActionsSheet(onDismiss: () -> Unit) {
             )
         }
         Spacer(Modifier.height(24.dp))
+    }
+}
+
+// ── Screen-share chooser ─────────────────────────────────────────────────
+
+/**
+ * Tencent-Meeting-style two-option sheet: 共享屏幕 / 共享白板. The screen
+ * option drops straight into the system MediaProjection consent dialog —
+ * on Android 14+ that dialog already includes the "entire screen / single
+ * app" toggle, so we don't need to build our own picker.
+ *
+ * Whiteboard is an MVP stub and just flashes a "coming soon" toast at the
+ * call site.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScreenShareChooserSheet(
+    onShareScreen: () -> Unit,
+    onShareWhiteboard: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val sheetState = rememberModalBottomSheetState()
+
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
+        Column(modifier = Modifier.padding(horizontal = 16.dp)) {
+            ShareOptionRow(
+                icon = Icons.Default.PhoneAndroid,
+                title = stringResource(R.string.room_screen_share_screen),
+                onClick = onShareScreen,
+            )
+            HorizontalDivider()
+            ShareOptionRow(
+                icon = Icons.Default.Dashboard,
+                title = stringResource(R.string.room_screen_share_whiteboard),
+                onClick = onShareWhiteboard,
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = onDismiss,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp),
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(12.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                    contentColor = MaterialTheme.colorScheme.onSurface,
+                ),
+            ) {
+                Text(stringResource(R.string.cancel))
+            }
+            Spacer(Modifier.height(24.dp))
+        }
+    }
+}
+
+@Composable
+private fun ShareOptionRow(
+    icon: ImageVector,
+    title: String,
+    onClick: () -> Unit,
+) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(vertical = 16.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.size(24.dp),
+        )
+        Spacer(Modifier.width(16.dp))
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurface,
+            modifier = Modifier.weight(1f),
+        )
     }
 }
 

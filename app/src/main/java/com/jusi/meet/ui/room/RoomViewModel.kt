@@ -1,6 +1,7 @@
 package com.jusi.meet.ui.room
 
 import android.app.Application
+import android.content.Intent
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.ViewModel
@@ -39,7 +40,19 @@ data class ParticipantUi(
     val isMicEnabled: Boolean,
     val videoTrack: VideoTrack?,
     val isSpeaking: Boolean = false,
-)
+    /**
+     * True when this tile represents a screen-share publication rather than
+     * a participant's camera. We emit a *separate* [ParticipantUi] for each
+     * screen-share track (identity suffixed with [SCREEN_SHARE_ID_SUFFIX]) so
+     * the gallery shows both the sharer's camera and their shared screen as
+     * distinct tiles, mirroring Tencent-Meeting-style behaviour.
+     */
+    val isScreenShare: Boolean = false,
+) {
+    companion object {
+        const val SCREEN_SHARE_ID_SUFFIX = "#screen"
+    }
+}
 
 /** UI-facing snapshot of the room. */
 data class RoomUiState(
@@ -67,6 +80,11 @@ data class RoomUiState(
     val sessionGeneration: Int = 0,
     /** In-meeting chat messages (oldest first). Ephemeral — cleared on disconnect. */
     val messages: List<ChatMessageUi> = emptyList(),
+    /**
+     * True while the local participant is publishing a screen-share track.
+     * Drives the Share / Stop Share state in the More sheet.
+     */
+    val localScreenSharing: Boolean = false,
 ) {
     enum class Phase { Connecting, Connected, Error, Disconnected }
 }
@@ -217,12 +235,16 @@ class RoomViewModel(
         val local = controller.room.localParticipant
         val remotes = controller.room.remoteParticipants.values
 
-        // Build identity → UI map from current room state.
+        // Build identity → UI map from current room state. For each participant
+        // we may emit two entries: the camera tile and, if they're publishing
+        // a screen-share track, a separate screen-share tile.
         val byIdentity = linkedMapOf<String, ParticipantUi>()
         local.toUi(isLocal = true).let { byIdentity[it.identity] = it }
+        local.screenShareUi(isLocal = true)?.let { byIdentity[it.identity] = it }
         remotes.forEach { p ->
             val ui = p.toUi(isLocal = false)
             byIdentity[ui.identity] = ui
+            p.screenShareUi(isLocal = false)?.let { byIdentity[it.identity] = it }
         }
 
         // Maintain stable ordering: keep previously-seen identities first
@@ -232,9 +254,22 @@ class RoomViewModel(
 
         val ordered = orderedIdentities.mapNotNull { byIdentity[it] }
 
-        // Clear focus if the pinned participant has left.
+        // Focus resolution:
+        //   1. If the user has an explicit pin that still exists, keep it.
+        //   2. Otherwise, auto-pin a remote screen-share so everyone sees the
+        //      shared content big. We don't auto-pin our own screen-share —
+        //      the sharer already knows what's being shared and is usually in
+        //      another app anyway.
+        //   3. Else clear focus (gallery).
         val focus = _state.value.focusIdentity
-        val nextFocus = focus?.takeIf { id -> byIdentity.containsKey(id) }
+        val remoteShareId = ordered.firstOrNull { it.isScreenShare && !it.isLocal }?.identity
+        val nextFocus = when {
+            focus != null && byIdentity.containsKey(focus) -> focus
+            remoteShareId != null -> remoteShareId
+            else -> null
+        }
+
+        val localHasShare = byIdentity.values.any { it.isScreenShare && it.isLocal }
 
         // Note: do NOT overwrite mic/cameraEnabled from `local.isXxxEnabled`
         // here. Track publication is async, so right after connect or a
@@ -245,6 +280,7 @@ class RoomViewModel(
             it.copy(
                 participants = ordered,
                 focusIdentity = nextFocus,
+                localScreenSharing = localHasShare,
             )
         }
     }
@@ -265,6 +301,31 @@ class RoomViewModel(
             isMicEnabled = isMicrophoneEnabled,
             videoTrack = videoTrack,
             isSpeaking = id in activeSpeakerIds,
+        )
+    }
+
+    /**
+     * Build the synthetic "screen-share" tile for a participant if they have
+     * an unmuted SCREEN_SHARE publication. Returns null otherwise so the
+     * gallery only shows the share tile while capture is live.
+     */
+    private fun Participant.screenShareUi(isLocal: Boolean): ParticipantUi? {
+        val pub = getTrackPublication(Track.Source.SCREEN_SHARE) ?: return null
+        if (pub.muted) return null
+        val track = pub.track as? VideoTrack ?: return null
+        val baseId = identity?.value ?: sid.value
+        val displayName = name?.takeIf { it.isNotBlank() } ?: identity?.value ?: "—"
+        val suffix = ParticipantUi.SCREEN_SHARE_ID_SUFFIX
+        val shareLabel = getApplication<Application>()
+            .getString(com.jusi.meet.R.string.room_screen_share_of, displayName)
+        return ParticipantUi(
+            identity = baseId + suffix,
+            name = shareLabel,
+            isLocal = isLocal,
+            isMicEnabled = true,
+            videoTrack = track,
+            isSpeaking = false,
+            isScreenShare = true,
         )
     }
 
@@ -291,6 +352,53 @@ class RoomViewModel(
 
     fun switchCamera() {
         controller.switchCamera()
+    }
+
+    // ── Screen share ───────────────────────────────────────────────────────
+
+    /**
+     * Start publishing the local screen. [resultData] must be the Intent
+     * returned from the MediaProjection consent activity launched by
+     * [android.media.projection.MediaProjectionManager.createScreenCaptureIntent].
+     *
+     * Suspends until the SDK has set up the capturer and bound its
+     * mediaProjection foreground service. The caller (RoomScreen) awaits
+     * this before backgrounding the app to launch a target app — on
+     * API 34+ the OS forbids starting a foreground service from the
+     * background, so we must not let the launched app take over until the
+     * SDK's own FGS is up.
+     *
+     * Returns true on success, false on failure (e.g. the consent Intent
+     * was already consumed, or the SDK threw).
+     */
+    suspend fun startScreenShare(resultData: Intent): Boolean {
+        if (_state.value.localScreenSharing) return true
+        _state.update { it.copy(localScreenSharing = true) }
+        return runCatching {
+            controller.setScreenShareEnabled(
+                enabled = true,
+                mediaProjectionResultData = resultData,
+                onSystemStop = {
+                    // Fires when MediaProjection is revoked outside our
+                    // control (user taps "Stop" on the system notification,
+                    // screen lock, etc.). Reconcile UI.
+                    viewModelScope.launch { stopScreenShare() }
+                },
+            )
+        }.onFailure { e ->
+            Log.w(TAG, "startScreenShare failed", e)
+            _state.update { it.copy(localScreenSharing = false) }
+        }.getOrDefault(false)
+    }
+
+    fun stopScreenShare() {
+        if (!_state.value.localScreenSharing) return
+        viewModelScope.launch {
+            runCatching { controller.setScreenShareEnabled(enabled = false) }
+                .onFailure { Log.w(TAG, "stopScreenShare failed", it) }
+            _state.update { it.copy(localScreenSharing = false) }
+            refreshParticipants()
+        }
     }
 
     fun onLifecycleStop() {

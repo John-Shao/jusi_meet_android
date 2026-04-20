@@ -1,6 +1,7 @@
 package com.jusi.meet.livekit
 
 import android.content.Context
+import android.content.Intent
 import com.jusi.meet.audio.CallAudioDeviceModule
 import com.jusi.meet.audio.CallFocusAudioHandler
 import io.livekit.android.AudioOptions
@@ -16,6 +17,7 @@ import io.livekit.android.room.datastream.TextStreamInfo
 import io.livekit.android.room.datastream.incoming.TextStreamHandler
 import io.livekit.android.room.track.LocalVideoTrack
 import io.livekit.android.room.track.Track
+import io.livekit.android.room.track.screencapture.ScreenCaptureParams
 
 /**
  * Thin imperative wrapper around the LiveKit Android SDK.
@@ -91,6 +93,36 @@ class LiveKitController(appContext: Context) {
         val pub = room.localParticipant.getTrackPublication(Track.Source.CAMERA) ?: return
         val track = pub.track as? LocalVideoTrack ?: return
         runCatching { track.switchCamera() }
+    }
+
+    /**
+     * Start or stop the local screen-share publication.
+     *
+     * When enabling, [mediaProjectionResultData] must be the Intent returned
+     * from [android.media.projection.MediaProjectionManager.createScreenCaptureIntent].
+     * The SDK binds its own [io.livekit.android.room.track.screencapture.ScreenCaptureService]
+     * (declared in our manifest with `foregroundServiceType="mediaProjection"`)
+     * for the lifetime of the capture — the OS requires a mediaProjection FGS
+     * to be running before createVirtualDisplay on API 34+.
+     *
+     * [onSystemStop] fires when MediaProjection is revoked outside our control
+     * (user taps the system's "stop sharing" notification, or the session
+     * dies) — RoomViewModel uses this to reconcile UI state.
+     */
+    suspend fun setScreenShareEnabled(
+        enabled: Boolean,
+        mediaProjectionResultData: Intent? = null,
+        onSystemStop: (() -> Unit)? = null,
+    ): Boolean {
+        val params = if (enabled && mediaProjectionResultData != null) {
+            ScreenCaptureParams(
+                mediaProjectionPermissionResultData = mediaProjectionResultData,
+                onStop = onSystemStop,
+            )
+        } else {
+            null
+        }
+        return room.localParticipant.setScreenShareEnabled(enabled, params)
     }
 
     fun disconnect() {

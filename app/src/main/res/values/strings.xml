@@ -49,6 +49,11 @@
     <string name="room_more_interpret">Interpret</string>
     <string name="room_more_settings">Settings</string>
     <string name="room_more_coming_soon">Coming soon</string>
+    <!-- Screen share -->
+    <string name="room_screen_share_screen">Share screen</string>
+    <string name="room_screen_share_whiteboard">Share whiteboard</string>
+    <string name="room_screen_share_stop">Stop share</string>
+    <string name="room_screen_share_of">%1$s\'s screen</string>
     <string name="room_action_hangup">Leave</string>
     <string name="room_end">End</string>
     <string name="room_leave">Leave meeting</string>

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ScreenShare
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
@@ -31,6 +32,7 @@ import androidx.compose.ui.zIndex
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jusi.meet.R
+import io.livekit.android.compose.ui.ScaleType
 import io.livekit.android.compose.ui.VideoTrackView
 import io.livekit.android.room.Room
 
@@ -79,11 +81,18 @@ fun ParticipantTile(
     ) {
         val track = participant.videoTrack
         if (track != null) {
+            // Screen-share tiles: letterbox with FitInside so the whole shared
+            // frame is visible (cropping a slide deck or an app UI would be
+            // worse than black bars). Camera tiles: Fill (default) so faces
+            // aren't letterboxed — matches Tencent Meeting's behaviour.
+            // Never mirror a screen-share frame even if it's local: what the
+            // sharer sees on their own device must match what remotes see.
             VideoTrackView(
                 videoTrack = track,
                 modifier = Modifier.fillMaxSize(),
                 passedRoom = room,
-                mirror = participant.isLocal,
+                mirror = participant.isLocal && !participant.isScreenShare,
+                scaleType = if (participant.isScreenShare) ScaleType.FitInside else ScaleType.Fill,
             )
         } else {
             // Camera-off placeholder: circular default avatar on the tile's
@@ -114,7 +123,9 @@ fun ParticipantTile(
             }
         }
 
-        // Bottom overlay: name + mic state.
+        // Bottom overlay: name + mic state (or a share icon for
+        // screen-share tiles, where the mic status belongs to the camera tile
+        // and not the synthetic share tile).
         Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
@@ -124,12 +135,21 @@ fun ParticipantTile(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Icon(
-                imageVector = if (participant.isMicEnabled) Icons.Default.Mic else Icons.Default.MicOff,
-                contentDescription = null,
-                tint = if (participant.isMicEnabled) Color.White else Color(0xFFFF6B6B),
-                modifier = Modifier.size(16.dp),
-            )
+            if (participant.isScreenShare) {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ScreenShare,
+                    contentDescription = null,
+                    tint = Color.White,
+                    modifier = Modifier.size(16.dp),
+                )
+            } else {
+                Icon(
+                    imageVector = if (participant.isMicEnabled) Icons.Default.Mic else Icons.Default.MicOff,
+                    contentDescription = null,
+                    tint = if (participant.isMicEnabled) Color.White else Color(0xFFFF6B6B),
+                    modifier = Modifier.size(16.dp),
+                )
+            }
             Text(
                 text = participant.name,
                 color = Color.White,

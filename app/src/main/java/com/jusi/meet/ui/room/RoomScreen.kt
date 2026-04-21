@@ -103,6 +103,7 @@ import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
 import com.jusi.meet.audio.AudioOutputStore
 import com.jusi.meet.overlay.ScreenShareOverlay
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 private val RoomToolbarIconButtonSize = 40.dp
@@ -275,13 +276,33 @@ private fun RoomContent(
                 mainActivity?.setScreenSharing(true)
                 val ok = onStartScreenShare(data)
                 if (ok) {
-                    // Kick the user to the launcher so "entire screen" actually
-                    // shows the desktop, not our meeting UI. The FGS keeps the
-                    // meeting alive while we're backgrounded.
-                    val home = Intent(Intent.ACTION_MAIN)
-                        .addCategory(Intent.CATEGORY_HOME)
-                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-                    runCatching { context.startActivity(home) }
+                    // Entire-screen vs single-app is decided inside the system
+                    // consent dialog; the MediaProjection result Intent is
+                    // opaque, so we can't read the mode directly. Instead,
+                    // wait a beat and check whether the OS has moved us off
+                    // foreground:
+                    //   - Still RESUMED  → "Entire screen" (system did nothing)
+                    //                      → push the user to the launcher so
+                    //                        the share actually shows the
+                    //                        desktop, not our meeting UI.
+                    //   - Below RESUMED → "Single app" (system already brought
+                    //                      the picked app to front) → don't
+                    //                      interfere; leave the user on that
+                    //                      app.
+                    // 400ms is a comfortable margin: long enough to outlast
+                    // the task-switch animation Android plays for single-app
+                    // mode, short enough that entire-screen mode doesn't feel
+                    // laggy before kicking to home.
+                    delay(400)
+                    val stillForeground = mainActivity?.lifecycle
+                        ?.currentState
+                        ?.isAtLeast(Lifecycle.State.RESUMED) == true
+                    if (stillForeground) {
+                        val home = Intent(Intent.ACTION_MAIN)
+                            .addCategory(Intent.CATEGORY_HOME)
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                        runCatching { context.startActivity(home) }
+                    }
                 } else {
                     mainActivity?.setScreenSharing(false)
                 }

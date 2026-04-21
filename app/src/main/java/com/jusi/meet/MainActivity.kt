@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import com.jusi.meet.overlay.ScreenShareOverlay
 import com.jusi.meet.ui.nav.AppNav
 import com.jusi.meet.ui.theme.JusiMeetTheme
 
@@ -37,6 +38,16 @@ class MainActivity : ComponentActivity() {
      */
     private var inMeeting: Boolean = false
 
+    /**
+     * `true` while the local user is publishing a screen-share track. We
+     * suppress Picture-in-Picture entirely in this state: a PiP window
+     * rendering the meeting UI would be captured back by MediaProjection,
+     * producing the hall-of-mirrors recursion we already guard against in
+     * the gallery tile. When this flag is on the user is expected to be on
+     * their home screen or inside another app anyway.
+     */
+    private var screenSharing: Boolean = false
+
     private val pipModeState = mutableStateOf(false)
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -53,6 +64,19 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    // Gate the screen-share floating bubble on Activity visibility. The
+    // overlay only shows while we're backgrounded — when the user returns to
+    // the meeting UI they already have the in-app stop controls.
+    override fun onStart() {
+        super.onStart()
+        ScreenShareOverlay.setForeground(true)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        ScreenShareOverlay.setForeground(false)
+    }
+
     /**
      * Called by RoomScreen when the user enters / leaves a connected meeting.
      * On Android 12+ this also drives the system's auto-enter-PiP behaviour:
@@ -61,17 +85,37 @@ class MainActivity : ComponentActivity() {
      */
     fun setMeetingInProgress(active: Boolean) {
         inMeeting = active
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            runCatching { setPictureInPictureParams(buildPipParams(active)) }
-                .onFailure { Log.w(TAG, "setPictureInPictureParams failed", it) }
-        }
+        applyPipParams()
+    }
+
+    /**
+     * Called by RoomScreen when the local user starts / stops a screen share.
+     * While true, we override the meeting-in-progress auto-PiP behaviour and
+     * keep PiP disabled so Home-gesture just backgrounds us to the desktop
+     * (where the actual share happens) instead of spawning a tiny meeting
+     * window that MediaProjection would re-capture recursively.
+     */
+    fun setScreenSharing(active: Boolean) {
+        screenSharing = active
+        applyPipParams()
+    }
+
+    /**
+     * Single place that decides whether auto-enter-PiP is on. Auto-enter
+     * only makes sense when we're in a meeting AND not screen-sharing.
+     */
+    private fun applyPipParams() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) return
+        val autoEnter = inMeeting && !screenSharing
+        runCatching { setPictureInPictureParams(buildPipParams(autoEnter)) }
+            .onFailure { Log.w(TAG, "setPictureInPictureParams failed", it) }
     }
 
     // Pre-12 fallback: onUserLeaveHint fires on Home press. Android 12+ with
     // setAutoEnterEnabled handles the gesture path itself.
     override fun onUserLeaveHint() {
         super.onUserLeaveHint()
-        if (!inMeeting) return
+        if (!inMeeting || screenSharing) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) return
         runCatching { enterPictureInPictureMode(buildPipParams(autoEnter = false)) }
@@ -80,7 +124,7 @@ class MainActivity : ComponentActivity() {
 
     /** Called by the in-meeting "缩小" toolbar button to collapse into PiP. */
     fun enterPipNow() {
-        if (!inMeeting) return
+        if (!inMeeting || screenSharing) return
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
         runCatching { enterPictureInPictureMode(buildPipParams(autoEnter = true)) }
             .onFailure { Log.w(TAG, "enterPictureInPictureMode failed", it) }

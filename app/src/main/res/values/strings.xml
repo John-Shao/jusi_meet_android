@@ -54,6 +54,8 @@
     <string name="room_screen_share_whiteboard">Share whiteboard</string>
     <string name="room_screen_share_stop">Stop share</string>
     <string name="room_screen_share_of">%1$s\'s screen</string>
+    <string name="room_screen_share_self_sharing">You are sharing your screen</string>
+    <string name="room_screen_share_overlay_prompt">Grant \"Display over other apps\" permission to stop screen share from the desktop</string>
     <string name="room_action_hangup">Leave</string>
     <string name="room_end">End</string>
     <string name="room_leave">Leave meeting</string>

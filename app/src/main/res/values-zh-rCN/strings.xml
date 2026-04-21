@@ -54,6 +54,8 @@
     <string name="room_screen_share_whiteboard">共享白板</string>
     <string name="room_screen_share_stop">停止共享</string>
     <string name="room_screen_share_of">%1$s 的共享</string>
+    <string name="room_screen_share_self_sharing">你正在共享屏幕</string>
+    <string name="room_screen_share_overlay_prompt">请授予"悬浮窗"权限，以便在桌面上停止共享</string>
     <string name="room_action_hangup">挂断</string>
     <string name="room_end">结束</string>
     <string name="room_leave">离开会议</string>

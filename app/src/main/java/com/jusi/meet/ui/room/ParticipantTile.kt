@@ -14,6 +14,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ScreenShare
+import androidx.compose.material.icons.automirrored.filled.StopScreenShare
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MicOff
 import androidx.compose.material.icons.filled.Person
@@ -68,6 +69,13 @@ fun ParticipantTile(
     showPinButton: Boolean = false,
     isPinned: Boolean = false,
     onPinClick: (() -> Unit)? = null,
+    /**
+     * Invoked by the local-sharer placeholder tile's Stop button. The tile
+     * only renders that button when [ParticipantUi.isScreenShare] &&
+     * [ParticipantUi.isLocal] && [ParticipantUi.videoTrack] is null, so
+     * passing this for any other tile is a no-op.
+     */
+    onStopScreenShare: (() -> Unit)? = null,
     shape: Shape = RoundedCornerShape(12.dp),
 ) {
     Box(
@@ -94,6 +102,35 @@ fun ParticipantTile(
                 mirror = participant.isLocal && !participant.isScreenShare,
                 scaleType = if (participant.isScreenShare) ScaleType.FitInside else ScaleType.Fill,
             )
+        } else if (participant.isScreenShare && participant.isLocal) {
+            // Local-sharer placeholder. We can't draw the real capture here —
+            // MediaProjection captures this very UI, so rendering the track
+            // would recursively re-capture itself (hall-of-mirrors). Static
+            // Compose content only → no recursion. RoomViewModel suppresses
+            // the VideoTrack specifically for the isLocal screen-share tile.
+            //
+            // Visual style matches the More sheet's "停止共享" button (same
+            // [ControlButton]): red icon inside a surfaceVariant circle,
+            // label below. A single entry for "how to stop sharing" reads
+            // the same wherever the user looks for it.
+            val stopCallback = onStopScreenShare
+            if (stopCallback != null) {
+                val stopTint = Color(0xFFFF4444)
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    ControlButton(
+                        icon = Icons.AutoMirrored.Filled.StopScreenShare,
+                        label = stringResource(R.string.room_screen_share_stop),
+                        isOn = true,
+                        onClick = stopCallback,
+                        labelColor = stopTint,
+                        iconBgColor = MaterialTheme.colorScheme.surfaceVariant,
+                        iconTintColor = stopTint,
+                    )
+                }
+            }
         } else {
             // Camera-off placeholder: circular default avatar on the tile's
             // dark-gray background, matching ProfileScreen's avatar style.
@@ -125,8 +162,12 @@ fun ParticipantTile(
 
         // Bottom overlay: name + mic state (or a share icon for
         // screen-share tiles, where the mic status belongs to the camera tile
-        // and not the synthetic share tile).
-        Row(
+        // and not the synthetic share tile). Skipped on the self-sharing
+        // placeholder — it already renders a big centered "你正在共享屏幕"
+        // label, an extra bottom-corner copy is redundant noise.
+        val suppressOverlay = participant.isScreenShare && participant.isLocal &&
+            participant.videoTrack == null
+        if (!suppressOverlay) Row(
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(8.dp)

@@ -308,22 +308,33 @@ class RoomViewModel(
      * Build the synthetic "screen-share" tile for a participant if they have
      * an unmuted SCREEN_SHARE publication. Returns null otherwise so the
      * gallery only shows the share tile while capture is live.
+     *
+     * For the LOCAL sharer we deliberately omit [ParticipantUi.videoTrack].
+     * MediaProjection captures our own screen, so rendering the live track
+     * on the sharer's own device would produce an infinite "mirror-in-mirror"
+     * recursion. [ParticipantTile] detects this (isScreenShare && videoTrack
+     * == null) and draws a static placeholder card instead — remote
+     * participants still get the real track unchanged.
      */
     private fun Participant.screenShareUi(isLocal: Boolean): ParticipantUi? {
         val pub = getTrackPublication(Track.Source.SCREEN_SHARE) ?: return null
         if (pub.muted) return null
         val track = pub.track as? VideoTrack ?: return null
         val baseId = identity?.value ?: sid.value
-        val displayName = name?.takeIf { it.isNotBlank() } ?: identity?.value ?: "—"
         val suffix = ParticipantUi.SCREEN_SHARE_ID_SUFFIX
-        val shareLabel = getApplication<Application>()
-            .getString(com.jusi.meet.R.string.room_screen_share_of, displayName)
+        val app = getApplication<Application>()
+        val label = if (isLocal) {
+            app.getString(com.jusi.meet.R.string.room_screen_share_self_sharing)
+        } else {
+            val displayName = name?.takeIf { it.isNotBlank() } ?: identity?.value ?: "—"
+            app.getString(com.jusi.meet.R.string.room_screen_share_of, displayName)
+        }
         return ParticipantUi(
             identity = baseId + suffix,
-            name = shareLabel,
+            name = label,
             isLocal = isLocal,
             isMicEnabled = true,
-            videoTrack = track,
+            videoTrack = if (isLocal) null else track,
             isSpeaking = false,
             isScreenShare = true,
         )

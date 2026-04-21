@@ -4,6 +4,8 @@ import android.app.Activity
 import android.app.Application
 import android.content.Intent
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
+import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
@@ -100,6 +102,7 @@ import com.jusi.meet.R
 import com.jusi.meet.audio.AudioOutput
 import com.jusi.meet.audio.AudioOutputController
 import com.jusi.meet.audio.AudioOutputStore
+import com.jusi.meet.overlay.ScreenShareOverlay
 import kotlinx.coroutines.launch
 
 private val RoomToolbarIconButtonSize = 40.dp
@@ -246,6 +249,11 @@ private fun RoomContent(
     var showAudioSheet by remember { mutableStateOf(false) }
     var showMessages by remember { mutableStateOf(false) }
     var showShareChooser by remember { mutableStateOf(false) }
+    // One-shot guard so we prompt for SYSTEM_ALERT_WINDOW at most once per
+    // meeting instance. If the user declines or ignores, subsequent "共享
+    // 屏幕" taps just proceed — sharing still works without the desktop
+    // bubble (they can stop from the notification or re-open the app).
+    var overlayPermissionPrompted by remember { mutableStateOf(false) }
     // Carry the user's last choice across Preview → Room handoff.
     var audioOutput by remember { mutableStateOf(AudioOutputStore.lastChoice) }
 
@@ -259,8 +267,44 @@ private fun RoomContent(
     ) { result ->
         val data = result.data
         if (result.resultCode == Activity.RESULT_OK && data != null) {
-            scope.launch { onStartScreenShare(data) }
+            val mainActivity = context as? MainActivity
+            scope.launch {
+                // Suppress auto-PiP *before* backgrounding: if LiveKit's FGS
+                // comes up a moment later while a PiP window has already spawned,
+                // MediaProjection captures the PiP meeting UI recursively.
+                mainActivity?.setScreenSharing(true)
+                val ok = onStartScreenShare(data)
+                if (ok) {
+                    // Kick the user to the launcher so "entire screen" actually
+                    // shows the desktop, not our meeting UI. The FGS keeps the
+                    // meeting alive while we're backgrounded.
+                    val home = Intent(Intent.ACTION_MAIN)
+                        .addCategory(Intent.CATEGORY_HOME)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    runCatching { context.startActivity(home) }
+                } else {
+                    mainActivity?.setScreenSharing(false)
+                }
+            }
         }
+    }
+
+    // Re-enable auto-PiP as soon as the user stops sharing (tile button,
+    // More sheet, system notification, LiveKit onStop callback — all funnel
+    // through state.localScreenSharing). The onSwitch-to-share side above
+    // sets the flag proactively; this effect owns the switch-off direction.
+    // Same switch also feeds the desktop floating-stop bubble.
+    val mainActivity = context as? MainActivity
+    LaunchedEffect(state.localScreenSharing) {
+        if (!state.localScreenSharing) mainActivity?.setScreenSharing(false)
+        ScreenShareOverlay.setSharing(state.localScreenSharing)
+    }
+
+    // Tap on the desktop bubble → funnel into the same stop path as every
+    // other entry point. Keeping the collection here (rather than inside
+    // RoomViewModel) means RoomViewModel stays agnostic of the overlay.
+    LaunchedEffect(Unit) {
+        ScreenShareOverlay.stopRequests.collect { onStopScreenShare() }
     }
 
     val requestScreenCapture: () -> Unit = {
@@ -318,6 +362,7 @@ private fun RoomContent(
                 showPinButtons = toolbarsVisible,
                 onPin = onPinParticipant,
                 onUnpin = onUnpinParticipant,
+                onStopScreenShare = onStopScreenShare,
             )
         }
 
@@ -390,7 +435,27 @@ private fun RoomContent(
         ScreenShareChooserSheet(
             onShareScreen = {
                 showShareChooser = false
-                requestScreenCapture()
+                // If we have never prompted for the overlay permission and
+                // don't currently have it, send the user to the system
+                // setting first — the desktop stop bubble only works with
+                // SYSTEM_ALERT_WINDOW granted. After they come back, a
+                // second tap on "共享屏幕" proceeds straight to capture.
+                if (!overlayPermissionPrompted &&
+                    !ScreenShareOverlay.canDrawOverlays(context)) {
+                    overlayPermissionPrompted = true
+                    android.widget.Toast.makeText(
+                        context,
+                        context.getString(R.string.room_screen_share_overlay_prompt),
+                        android.widget.Toast.LENGTH_LONG,
+                    ).show()
+                    val intent = Intent(
+                        Settings.ACTION_MANAGE_OVERLAY_PERMISSION,
+                        Uri.parse("package:${context.packageName}"),
+                    )
+                    runCatching { context.startActivity(intent) }
+                } else {
+                    requestScreenCapture()
+                }
             },
             onShareWhiteboard = {
                 showShareChooser = false
@@ -628,6 +693,7 @@ private fun VideoGrid(
     showPinButtons: Boolean,
     onPin: (String) -> Unit,
     onUnpin: () -> Unit,
+    onStopScreenShare: () -> Unit,
 ) {
     val participants = state.participants
     if (participants.isEmpty()) return
@@ -647,6 +713,7 @@ private fun VideoGrid(
                 showPinButtons = showPinButtons,
                 onPin = onPin,
                 onUnpin = onUnpin,
+                onStopScreenShare = onStopScreenShare,
                 modifier = Modifier.fillMaxSize(),
             )
         } else {
@@ -656,6 +723,7 @@ private fun VideoGrid(
                 focusIdentity = null,
                 showPinButtons = showPinButtons,
                 onPin = onPin,
+                onStopScreenShare = onStopScreenShare,
                 modifier = Modifier.fillMaxSize(),
             )
         }
@@ -1064,7 +1132,7 @@ private fun AudioOutputOption(
 // ── Shared components ────────────────────────────────────────────────────
 
 @Composable
-private fun ControlButton(
+internal fun ControlButton(
     icon: ImageVector,
     label: String,
     isOn: Boolean,

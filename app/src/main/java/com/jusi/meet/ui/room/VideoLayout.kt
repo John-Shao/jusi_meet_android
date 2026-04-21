@@ -70,6 +70,7 @@ fun GalleryLayout(
     focusIdentity: String?,
     showPinButtons: Boolean,
     onPin: (String) -> Unit,
+    onStopScreenShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     if (participants.isEmpty()) return
@@ -96,6 +97,7 @@ fun GalleryLayout(
                 showPinButton = showPinButtons,
                 isPinned = participants[0].identity == focusIdentity,
                 onPinClick = { onPin(participants[0].identity) },
+                onStopScreenShare = onStopScreenShare,
             )
             Row(
                 modifier = Modifier
@@ -112,6 +114,7 @@ fun GalleryLayout(
                     showPinButton = showPinButtons,
                     isPinned = participants[1].identity == focusIdentity,
                     onPinClick = { onPin(participants[1].identity) },
+                    onStopScreenShare = onStopScreenShare,
                 )
                 ParticipantTile(
                     room = room,
@@ -122,6 +125,7 @@ fun GalleryLayout(
                     showPinButton = showPinButtons,
                     isPinned = participants[2].identity == focusIdentity,
                     onPinClick = { onPin(participants[2].identity) },
+                    onStopScreenShare = onStopScreenShare,
                 )
             }
         }
@@ -149,6 +153,7 @@ fun GalleryLayout(
                 focusIdentity = focusIdentity,
                 showPinButtons = showPinButtons,
                 onPin = onPin,
+                onStopScreenShare = onStopScreenShare,
             )
         }
 
@@ -176,6 +181,7 @@ private fun GridPage(
     focusIdentity: String?,
     showPinButtons: Boolean,
     onPin: (String) -> Unit,
+    onStopScreenShare: () -> Unit,
 ) {
     Column(
         modifier = Modifier.fillMaxSize(),
@@ -201,6 +207,7 @@ private fun GridPage(
                             showPinButton = showPinButtons,
                             isPinned = p.identity == focusIdentity,
                             onPinClick = { onPin(p.identity) },
+                            onStopScreenShare = onStopScreenShare,
                         )
                     } else {
                         // Blank cell to keep the grid shape on the last page.
@@ -258,6 +265,7 @@ fun FocusLayout(
     showPinButtons: Boolean,
     onPin: (String) -> Unit,
     onUnpin: () -> Unit,
+    onStopScreenShare: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val focus = participants.firstOrNull { it.identity == focusIdentity } ?: return
@@ -277,6 +285,7 @@ fun FocusLayout(
                 showPinButton = showPinButtons,
                 isPinned = true,
                 onPinClick = onUnpin,
+                onStopScreenShare = onStopScreenShare,
             )
             if (others.isNotEmpty()) {
                 LazyRow(
@@ -296,6 +305,7 @@ fun FocusLayout(
                             showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },
+                            onStopScreenShare = onStopScreenShare,
                         )
                     }
                 }
@@ -312,6 +322,7 @@ fun FocusLayout(
                 showPinButton = showPinButtons,
                 isPinned = true,
                 onPinClick = onUnpin,
+                onStopScreenShare = onStopScreenShare,
             )
             if (others.isNotEmpty()) {
                 LazyColumn(
@@ -331,6 +342,7 @@ fun FocusLayout(
                             showPinButton = showPinButtons,
                             isPinned = false,
                             onPinClick = { onPin(p.identity) },
+                            onStopScreenShare = onStopScreenShare,
                         )
                     }
                 }

@@ -5,6 +5,7 @@ import com.jusi.meet.data.api.ApiClient
 import com.jusi.meet.data.auth.TokenStore
 import com.jusi.meet.data.repository.AuthRepository
 import com.jusi.meet.data.repository.RoomRepository
+import com.jusi.meet.overlay.ScreenShareOverlay
 
 /**
  * Application class that owns the shared singletons for the app.
@@ -31,5 +32,6 @@ class JusiMeetApp : Application() {
         apiClient = ApiClient(tokenStore)
         authRepository = AuthRepository(apiClient.authApi, tokenStore, apiClient.okHttp)
         roomRepository = RoomRepository(apiClient.roomApi)
+        ScreenShareOverlay.init(this)
     }
 }

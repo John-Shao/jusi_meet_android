@@ -2,6 +2,7 @@ package com.jusi.meet.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -37,6 +38,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 
+/** Color of the thin band separating the action zone from the history list. */
+private val HomeSeparatorLight = Color(0xFFF2F4F3)
+private val HomeSeparatorDark = Color(0xFF0A0A0A)
+
 @Composable
 fun HomeScreen(
     onCreateMeeting: () -> Unit,
@@ -50,13 +55,13 @@ fun HomeScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = 24.dp, vertical = 16.dp),
+            .verticalScroll(rememberScrollState()),
     ) {
-        Spacer(Modifier.height(16.dp))
-
+        // Action zone — padded, same background as the page.
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 24.dp, vertical = 32.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             ActionCard(
@@ -77,12 +82,23 @@ fun HomeScreen(
             )
         }
 
-        Spacer(Modifier.height(16.dp))
-
-        HistoryList(
-            entries = history,
-            onEntryClick = onHistoryClick,
+        // Full-width tinted band separating the action zone from the
+        // history list — mirrors the Feishu home layout.
+        val separatorColor = if (isSystemInDarkTheme()) HomeSeparatorDark else HomeSeparatorLight
+        Spacer(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(8.dp)
+                .background(separatorColor),
         )
+
+        // History zone — padded inside its own column.
+        Column(modifier = Modifier.padding(horizontal = 24.dp)) {
+            HistoryList(
+                entries = history,
+                onEntryClick = onHistoryClick,
+            )
+        }
     }
 }
 

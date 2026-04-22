@@ -121,6 +121,8 @@ fun RoomScreen(
     livekitToken: String,
     roomName: String,
     roomSlug: String,
+    host: String?,
+    createdAtMs: Long,
     isAdmin: Boolean,
     initialMicEnabled: Boolean = true,
     initialCameraEnabled: Boolean = true,
@@ -131,7 +133,8 @@ fun RoomScreen(
 
     val viewModel: RoomViewModel = viewModel(
         factory = RoomViewModel.Factory(
-            app, roomId, livekitUrl, livekitToken, roomName,
+            app, roomId, livekitUrl, livekitToken, roomName, roomSlug,
+            host, createdAtMs,
             initialMicEnabled, initialCameraEnabled, isAdmin,
         ),
     )

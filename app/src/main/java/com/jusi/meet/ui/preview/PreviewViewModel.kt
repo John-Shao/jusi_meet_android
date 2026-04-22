@@ -11,6 +11,9 @@ import com.jusi.meet.data.auth.TokenStore
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.util.ErrorScope
 import com.jusi.meet.util.toUserMessage
+import java.text.SimpleDateFormat
+import java.util.Locale
+import java.util.TimeZone
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -35,6 +38,10 @@ data class RoomTarget(
     val displayName: String,
     val slug: String,
     val isAdmin: Boolean,
+    /** 发起人. Only known when the local user created the meeting. */
+    val host: String?,
+    /** 创建时间 in epoch millis. Parsed from RoomDto.created_at, or now() as fallback. */
+    val createdAtMs: Long,
 )
 
 class PreviewViewModel(
@@ -78,6 +85,9 @@ class PreviewViewModel(
                             displayName = room.name ?: room.slug ?: room.id,
                             slug = room.slug ?: room.id,
                             isAdmin = room.is_administrable == true,
+                            // We're the creator → we're the host.
+                            host = username,
+                            createdAtMs = parseIsoMillis(room.created_at),
                         ))
                     }
                 },
@@ -119,6 +129,9 @@ class PreviewViewModel(
                             displayName = room.name ?: room.slug ?: room.id,
                             slug = room.slug ?: room.id,
                             isAdmin = room.is_administrable == true,
+                            // Host of an existing room isn't in the API response.
+                            host = null,
+                            createdAtMs = parseIsoMillis(room.created_at),
                         ))
                     }
                 },
@@ -132,6 +145,22 @@ class PreviewViewModel(
                 },
             )
         }
+    }
+
+    private fun parseIsoMillis(iso: String?): Long {
+        if (iso.isNullOrBlank()) return System.currentTimeMillis()
+        // DRF emits RFC 3339 like "2026-04-22T14:58:12.345678Z". SimpleDateFormat
+        // doesn't handle fractional seconds or "Z" uniformly across Android
+        // versions, so normalize first: strip fractional seconds and replace
+        // trailing "Z" with "+0000".
+        val normalized = iso
+            .replace(Regex("\\.\\d+"), "")
+            .let { if (it.endsWith("Z")) it.dropLast(1) + "+0000" else it }
+        val fmt = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ", Locale.US).apply {
+            timeZone = TimeZone.getTimeZone("UTC")
+        }
+        return runCatching { fmt.parse(normalized)?.time }.getOrNull()
+            ?: System.currentTimeMillis()
     }
 
     fun dismissError() {

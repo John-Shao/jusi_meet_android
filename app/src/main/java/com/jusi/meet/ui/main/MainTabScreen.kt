@@ -56,6 +56,7 @@ private val tabs = listOf(
 fun MainTabScreen(
     onCreateMeeting: () -> Unit,
     onJoinMeeting: () -> Unit,
+    onHistoryClick: (roomId: String) -> Unit,
     onSignedOut: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -74,6 +75,7 @@ fun MainTabScreen(
                     HomeScreen(
                         onCreateMeeting = onCreateMeeting,
                         onJoinMeeting = onJoinMeeting,
+                        onHistoryClick = onHistoryClick,
                     )
                 }
             }

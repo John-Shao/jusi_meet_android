@@ -52,14 +52,24 @@ object Routes {
     const val JOIN_PREVIEW = "join_preview"
 
     private const val ROOM_BASE = "room"
-    const val ROOM = "$ROOM_BASE/{roomId}/{url}/{token}/{name}/{slug}/{isAdmin}/{mic}/{cam}"
+    const val ROOM = "$ROOM_BASE/{roomId}/{url}/{token}/{name}/{slug}/{host}/{createdAt}/{isAdmin}/{mic}/{cam}"
+
+    private const val HISTORY_BASE = "history_detail"
+    const val HISTORY_DETAIL = "$HISTORY_BASE/{roomId}"
 
     fun room(
         roomId: String, url: String, token: String, name: String, slug: String,
-        isAdmin: Boolean, mic: Boolean, cam: Boolean,
+        host: String?, createdAtMs: Long, isAdmin: Boolean, mic: Boolean, cam: Boolean,
     ): String {
         fun enc(s: String) = URLEncoder.encode(s, StandardCharsets.UTF_8.name())
-        return "$ROOM_BASE/${enc(roomId)}/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}/$isAdmin/$mic/$cam"
+        // Empty host serialises as "" which decode() round-trips cleanly; the
+        // receiver treats blank as null.
+        return "$ROOM_BASE/${enc(roomId)}/${enc(url)}/${enc(token)}/${enc(name)}/${enc(slug)}/${enc(host.orEmpty())}/$createdAtMs/$isAdmin/$mic/$cam"
+    }
+
+    fun historyDetail(roomId: String): String {
+        val enc = URLEncoder.encode(roomId, StandardCharsets.UTF_8.name())
+        return "$HISTORY_BASE/$enc"
     }
 
     fun decode(value: String): String =
@@ -95,6 +105,9 @@ fun AppNav() {
             MainTabScreen(
                 onCreateMeeting = { navController.navigate(Routes.CREATE_PREVIEW) },
                 onJoinMeeting = { navController.navigate(Routes.JOIN_PREVIEW) },
+                onHistoryClick = { roomId ->
+                    navController.navigate(Routes.historyDetail(roomId))
+                },
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
@@ -106,8 +119,8 @@ fun AppNav() {
         composable(Routes.CREATE_PREVIEW) {
             PreviewScreen(
                 mode = PreviewMode.Create,
-                onEnterRoom = { roomId, url, token, name, slug, isAdmin, mic, cam ->
-                    navController.navigate(Routes.room(roomId, url, token, name, slug, isAdmin, mic, cam)) {
+                onEnterRoom = { roomId, url, token, name, slug, host, createdAtMs, isAdmin, mic, cam ->
+                    navController.navigate(Routes.room(roomId, url, token, name, slug, host, createdAtMs, isAdmin, mic, cam)) {
                         popUpTo(Routes.HOME)
                     }
                 },
@@ -118,8 +131,8 @@ fun AppNav() {
         composable(Routes.JOIN_PREVIEW) {
             PreviewScreen(
                 mode = PreviewMode.Join,
-                onEnterRoom = { roomId, url, token, name, slug, isAdmin, mic, cam ->
-                    navController.navigate(Routes.room(roomId, url, token, name, slug, isAdmin, mic, cam)) {
+                onEnterRoom = { roomId, url, token, name, slug, host, createdAtMs, isAdmin, mic, cam ->
+                    navController.navigate(Routes.room(roomId, url, token, name, slug, host, createdAtMs, isAdmin, mic, cam)) {
                         popUpTo(Routes.HOME)
                     }
                 },
@@ -135,18 +148,23 @@ fun AppNav() {
                 navArgument("token") { type = NavType.StringType },
                 navArgument("name") { type = NavType.StringType },
                 navArgument("slug") { type = NavType.StringType },
+                navArgument("host") { type = NavType.StringType },
+                navArgument("createdAt") { type = NavType.LongType },
                 navArgument("isAdmin") { type = NavType.BoolType },
                 navArgument("mic") { type = NavType.BoolType },
                 navArgument("cam") { type = NavType.BoolType },
             ),
         ) { entry ->
             val args = entry.arguments!!
+            val decodedHost = Routes.decode(args.getString("host").orEmpty())
             RoomScreen(
                 roomId = Routes.decode(args.getString("roomId").orEmpty()),
                 livekitUrl = Routes.decode(args.getString("url").orEmpty()),
                 livekitToken = Routes.decode(args.getString("token").orEmpty()),
                 roomName = Routes.decode(args.getString("name").orEmpty()),
                 roomSlug = Routes.decode(args.getString("slug").orEmpty()),
+                host = decodedHost.takeIf { it.isNotBlank() },
+                createdAtMs = args.getLong("createdAt"),
                 isAdmin = args.getBoolean("isAdmin", false),
                 initialMicEnabled = args.getBoolean("mic", true),
                 initialCameraEnabled = args.getBoolean("cam", true),
@@ -154,6 +172,19 @@ fun AppNav() {
                     if (hostEnded) hostEndedSheetVisible = true
                     navController.popBackStack(Routes.HOME, inclusive = false)
                 },
+            )
+        }
+
+        composable(
+            route = Routes.HISTORY_DETAIL,
+            arguments = listOf(
+                navArgument("roomId") { type = NavType.StringType },
+            ),
+        ) { entry ->
+            val args = entry.arguments!!
+            com.jusi.meet.ui.history.HistoryDetailScreen(
+                roomId = Routes.decode(args.getString("roomId").orEmpty()),
+                onBack = { navController.popBackStack() },
             )
         }
     }

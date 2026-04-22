@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.api.dto.LiveKitDto
 import com.jusi.meet.data.auth.TokenStore
+import com.jusi.meet.data.history.HistoryEntry
+import com.jusi.meet.data.history.HistoryStore
 import com.jusi.meet.data.repository.AuthRepository
 import com.jusi.meet.data.repository.RoomRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +35,13 @@ class HomeViewModel(
     private val tokenStore: TokenStore,
     private val authRepository: AuthRepository,
     private val roomRepository: RoomRepository,
+    historyStore: HistoryStore,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HomeUiState(phone = tokenStore.phone))
     val state: StateFlow<HomeUiState> = _state.asStateFlow()
+
+    val history: StateFlow<List<HistoryEntry>> = historyStore.entries
 
     fun onRoomInputChange(value: String) {
         _state.update { it.copy(roomInput = value, errorMessage = null) }
@@ -110,6 +115,7 @@ class HomeViewModel(
                 tokenStore = app.tokenStore,
                 authRepository = app.authRepository,
                 roomRepository = app.roomRepository,
+                historyStore = app.historyStore,
             ) as T
     }
 }

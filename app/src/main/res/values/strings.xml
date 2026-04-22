@@ -81,6 +81,17 @@
     <string name="meeting_notification_title">In meeting</string>
     <string name="meeting_notification_content">%1$s</string>
 
+    <!-- History -->
+    <string name="history_section_title">History</string>
+    <string name="history_empty">No history yet</string>
+    <string name="history_detail_meeting_id">Meeting ID: %1$s</string>
+    <string name="history_detail_host">Host: %1$s</string>
+    <string name="history_detail_participants">Participants</string>
+    <string name="history_detail_timeline_today">Today</string>
+    <string name="history_detail_joined">Joined meeting</string>
+    <string name="history_detail_left">Left meeting</string>
+    <string name="history_unknown_host">—</string>
+
     <!-- Tabs -->
     <string name="tab_meeting">Meeting</string>
     <string name="tab_profile">Me</string>

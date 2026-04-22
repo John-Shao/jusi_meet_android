@@ -15,6 +15,8 @@ data class RoomDto(
     val access_level: String?,
     val is_administrable: Boolean?,
     val livekit: LiveKitDto?,
+    /** ISO 8601, e.g. "2026-04-22T14:58:12.345Z". Used by history as 创建时间. */
+    val created_at: String? = null,
 )
 
 @JsonClass(generateAdapter = true)

@@ -93,7 +93,7 @@ enum class PreviewMode { Create, Join }
 @Composable
 fun PreviewScreen(
     mode: PreviewMode,
-    onEnterRoom: (roomId: String, livekitUrl: String, livekitToken: String, name: String, slug: String, isAdmin: Boolean, mic: Boolean, cam: Boolean) -> Unit,
+    onEnterRoom: (roomId: String, livekitUrl: String, livekitToken: String, name: String, slug: String, host: String?, createdAtMs: Long, isAdmin: Boolean, mic: Boolean, cam: Boolean) -> Unit,
     onClose: () -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as JusiMeetApp
@@ -162,7 +162,7 @@ fun PreviewScreen(
 
     val doAction: () -> Unit = {
         val callback = { target: RoomTarget ->
-            onEnterRoom(target.roomId, target.livekitUrl, target.livekitToken, target.displayName, target.slug, target.isAdmin, micEnabled, cameraEnabled)
+            onEnterRoom(target.roomId, target.livekitUrl, target.livekitToken, target.displayName, target.slug, target.host, target.createdAtMs, target.isAdmin, micEnabled, cameraEnabled)
         }
         when (mode) {
             PreviewMode.Create -> previewViewModel.createMeeting(meetingName, callback)

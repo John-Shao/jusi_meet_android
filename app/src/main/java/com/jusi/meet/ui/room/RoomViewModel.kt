@@ -9,6 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.chat.ChatMessageUi
+import com.jusi.meet.data.history.HistoryStore
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.livekit.LiveKitController
 import com.jusi.meet.service.ConferenceForegroundService
@@ -95,7 +96,12 @@ class RoomViewModel(
     private val livekitUrl: String,
     private val livekitToken: String,
     private val roomName: String,
+    private val roomSlug: String,
     private val roomRepository: RoomRepository,
+    private val historyStore: HistoryStore,
+    private val selfName: String,
+    private val host: String?,
+    private val createdAtMs: Long,
     private val initialMicEnabled: Boolean = true,
     private val initialCameraEnabled: Boolean = true,
     private val isAdmin: Boolean = false,
@@ -159,6 +165,14 @@ class RoomViewModel(
             }.onSuccess {
                 _state.update { it.copy(phase = RoomUiState.Phase.Connected) }
                 ConferenceForegroundService.start(getApplication(), roomName)
+                historyStore.upsertOnJoin(
+                    roomId = roomId,
+                    name = roomName,
+                    slug = roomSlug,
+                    host = host,
+                    createdAtMs = createdAtMs,
+                    selfName = selfName,
+                )
                 registerChatHandler()
                 refreshParticipants()
             }.onFailure { e ->
@@ -217,6 +231,7 @@ class RoomViewModel(
                             // back to Home with the host-ended sheet.
                             ConferenceForegroundService.stop(getApplication())
                         }
+                        historyStore.markLeft(roomId)
                         _state.update {
                             it.copy(
                                 phase = RoomUiState.Phase.Disconnected,
@@ -283,6 +298,14 @@ class RoomViewModel(
                 localScreenSharing = localHasShare,
             )
         }
+
+        // Accumulate the names of everyone we've seen in the room for the
+        // history's 参会人 list. Exclude synthetic screen-share tiles —
+        // those aren't distinct people.
+        val participantNames = ordered
+            .filterNot { it.isScreenShare }
+            .map { it.name }
+        historyStore.recordParticipants(roomId, participantNames)
     }
 
     private fun Participant.toUi(isLocal: Boolean): ParticipantUi {
@@ -592,6 +615,10 @@ class RoomViewModel(
 
     override fun onCleared() {
         super.onCleared()
+        // Safety net: if the user closes the app / the VM is destroyed before
+        // the Disconnected event lands, still record a leave timestamp so the
+        // history entry isn't stuck with a null 离开时间.
+        historyStore.markLeft(roomId)
         ConferenceForegroundService.stop(getApplication())
         controller.disconnect()
         controller.release()
@@ -603,6 +630,9 @@ class RoomViewModel(
         private val livekitUrl: String,
         private val livekitToken: String,
         private val roomName: String,
+        private val roomSlug: String,
+        private val host: String?,
+        private val createdAtMs: Long,
         private val initialMicEnabled: Boolean = true,
         private val initialCameraEnabled: Boolean = true,
         private val isAdmin: Boolean = false,
@@ -610,9 +640,13 @@ class RoomViewModel(
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T {
             val app = application as JusiMeetApp
+            val selfName = app.tokenStore.nickname?.takeIf { it.isNotBlank() }
+                ?: app.tokenStore.phone
+                ?: "Android User"
             return RoomViewModel(
-                application, roomId, livekitUrl, livekitToken, roomName,
-                app.roomRepository, initialMicEnabled, initialCameraEnabled, isAdmin,
+                application, roomId, livekitUrl, livekitToken, roomName, roomSlug,
+                app.roomRepository, app.historyStore, selfName, host, createdAtMs,
+                initialMicEnabled, initialCameraEnabled, isAdmin,
             ) as T
         }
     }

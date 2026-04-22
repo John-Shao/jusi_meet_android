@@ -299,13 +299,21 @@ class RoomViewModel(
             )
         }
 
-        // Accumulate the names of everyone we've seen in the room for the
-        // history's 参会人 list. Exclude synthetic screen-share tiles —
-        // those aren't distinct people.
-        val participantNames = ordered
-            .filterNot { it.isScreenShare }
-            .map { it.name }
-        historyStore.recordParticipants(roomId, participantNames)
+        // Accumulate real participant names for the history's 参会人 list.
+        // Read directly from LiveKit (not the UI projection) so we never
+        // record the "—" placeholder that toUi() falls back to during the
+        // brief window after connect() returns but before the local
+        // participant's identity has been populated.
+        val participantNames = buildList {
+            fun realName(p: Participant): String? =
+                p.name?.takeIf { it.isNotBlank() }
+                    ?: p.identity?.value?.takeIf { it.isNotBlank() }
+            realName(local)?.let { add(it) }
+            remotes.forEach { realName(it)?.let { name -> add(name) } }
+        }
+        if (participantNames.isNotEmpty()) {
+            historyStore.recordParticipants(roomId, participantNames)
+        }
     }
 
     private fun Participant.toUi(isLocal: Boolean): ParticipantUi {

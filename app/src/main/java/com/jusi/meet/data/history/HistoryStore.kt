@@ -69,7 +69,16 @@ class HistoryStore(context: Context) {
         } else {
             emptyList()
         }
-        _entries.value = loaded.sortedByDescending { it.sortKey() }
+        // Scrub legacy "—" / blank participant entries written before we
+        // started filtering them out at the source.
+        val scrubbed = loaded.map { entry ->
+            val cleaned = entry.participants
+                .map { it.trim() }
+                .filter { it.isNotEmpty() && it != "—" }
+            if (cleaned == entry.participants) entry else entry.copy(participants = cleaned)
+        }
+        _entries.value = scrubbed.sortedByDescending { it.sortKey() }
+        if (scrubbed != loaded) writeLocked(_entries.value)
     }
 
     fun byId(roomId: String): HistoryEntry? = _entries.value.firstOrNull { it.roomId == roomId }

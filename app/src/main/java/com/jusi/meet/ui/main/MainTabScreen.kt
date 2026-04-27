@@ -57,6 +57,7 @@ fun MainTabScreen(
     onCreateMeeting: () -> Unit,
     onJoinMeeting: () -> Unit,
     onHistoryClick: (roomId: String) -> Unit,
+    onSettingsClick: () -> Unit,
     onSignedOut: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
@@ -76,6 +77,7 @@ fun MainTabScreen(
                         onCreateMeeting = onCreateMeeting,
                         onJoinMeeting = onJoinMeeting,
                         onHistoryClick = onHistoryClick,
+                        onSettingsClick = onSettingsClick,
                     )
                 }
             }

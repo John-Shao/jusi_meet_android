@@ -22,6 +22,13 @@
     <string name="home_join">Join</string>
     <string name="home_logout">Sign out</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
+    <string name="home_settings">Settings</string>
+
+    <!-- Settings screen -->
+    <string name="settings_title">Settings</string>
+    <string name="settings_video_codec">Video codec</string>
+    <string name="settings_video_codec_default_suffix">(default)</string>
+    <string name="settings_video_codec_hint">Applies to your next meeting.</string>
 
     <!-- Preview screen -->
     <string name="preview_start_meeting">Start meeting</string>

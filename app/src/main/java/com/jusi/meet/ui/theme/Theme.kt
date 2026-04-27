@@ -6,7 +6,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
 
@@ -30,6 +34,36 @@ private val DarkColors = darkColorScheme(
     onSurface = DarkOnSurface,
 )
 
+/**
+ * Semantic color tokens that sit outside Material 3's [ColorScheme].
+ *
+ * Add new tokens here (and to Color.kt as `Light…` / `Dark…` pairs) rather
+ * than branching on [isSystemInDarkTheme] at call sites. Consumers read
+ * them via [JusiMeetTheme.extras].
+ */
+data class JusiMeetExtras(
+    /** Thin tinted band used to separate zones on the Home page. */
+    val surfaceBand: Color,
+)
+
+private val LightExtras = JusiMeetExtras(
+    surfaceBand = LightSurfaceBand,
+)
+
+private val DarkExtras = JusiMeetExtras(
+    surfaceBand = DarkSurfaceBand,
+)
+
+private val LocalJusiMeetExtras = staticCompositionLocalOf { LightExtras }
+
+/** Accessor mirroring `MaterialTheme.colorScheme` for our extras. */
+object JusiMeetTheme {
+    val extras: JusiMeetExtras
+        @Composable
+        @ReadOnlyComposable
+        get() = LocalJusiMeetExtras.current
+}
+
 @Composable
 fun JusiMeetTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -43,9 +77,13 @@ fun JusiMeetTheme(
                 .isAppearanceLightStatusBars = !darkTheme
         }
     }
-    MaterialTheme(
-        colorScheme = if (darkTheme) DarkColors else LightColors,
-        typography = JusiTypography,
-        content = content,
-    )
+    CompositionLocalProvider(
+        LocalJusiMeetExtras provides if (darkTheme) DarkExtras else LightExtras,
+    ) {
+        MaterialTheme(
+            colorScheme = if (darkTheme) DarkColors else LightColors,
+            typography = JusiTypography,
+            content = content,
+        )
+    }
 }

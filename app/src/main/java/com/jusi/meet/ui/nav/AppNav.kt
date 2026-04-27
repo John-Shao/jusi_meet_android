@@ -40,6 +40,7 @@ import com.jusi.meet.ui.main.MainTabScreen
 import com.jusi.meet.ui.preview.PreviewMode
 import com.jusi.meet.ui.preview.PreviewScreen
 import com.jusi.meet.ui.room.RoomScreen
+import com.jusi.meet.ui.settings.SettingsScreen
 import kotlinx.coroutines.delay
 import java.net.URLDecoder
 import java.net.URLEncoder
@@ -48,6 +49,7 @@ import java.nio.charset.StandardCharsets
 object Routes {
     const val LOGIN = "login"
     const val HOME = "home"
+    const val SETTINGS = "settings"
     const val CREATE_PREVIEW = "create_preview"
     const val JOIN_PREVIEW = "join_preview"
 
@@ -108,12 +110,17 @@ fun AppNav() {
                 onHistoryClick = { roomId ->
                     navController.navigate(Routes.historyDetail(roomId))
                 },
+                onSettingsClick = { navController.navigate(Routes.SETTINGS) },
                 onSignedOut = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
                 },
             )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Routes.CREATE_PREVIEW) {

@@ -15,8 +15,10 @@ import io.livekit.android.room.Room
 import io.livekit.android.room.datastream.StreamTextOptions
 import io.livekit.android.room.datastream.TextStreamInfo
 import io.livekit.android.room.datastream.incoming.TextStreamHandler
+import io.livekit.android.room.participant.VideoTrackPublishDefaults
 import io.livekit.android.room.track.LocalVideoTrack
 import io.livekit.android.room.track.Track
+import io.livekit.android.room.track.VideoCodec
 import io.livekit.android.room.track.screencapture.ScreenCaptureParams
 
 /**
@@ -36,7 +38,15 @@ import io.livekit.android.room.track.screencapture.ScreenCaptureParams
  * stream. Routing is driven by [com.jusi.meet.audio.AudioOutputController]
  * (see that class for the reasoning).
  */
-class LiveKitController(appContext: Context) {
+class LiveKitController(
+    appContext: Context,
+    /**
+     * Codec to publish camera video with. Captured at construction — the SDK
+     * reads it once when the local track is created, so a setting change only
+     * takes effect on the next meeting (next [LiveKitController] instance).
+     */
+    videoCodec: VideoCodec = VideoCodec.H264,
+) {
 
     /**
      * Exposed so [com.jusi.meet.audio.AudioOutputController] can pin the
@@ -50,6 +60,9 @@ class LiveKitController(appContext: Context) {
         options = RoomOptions(
             adaptiveStream = true,
             dynacast = true,
+            videoTrackPublishDefaults = VideoTrackPublishDefaults(
+                videoCodec = videoCodec.codecName,
+            ),
         ),
         overrides = LiveKitOverrides(
             audioOptions = AudioOptions(

@@ -2,7 +2,6 @@ package com.jusi.meet.ui.home
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,8 +17,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddBox
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Videocam
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -29,6 +30,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import com.jusi.meet.ui.theme.JusiMeetTheme
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
@@ -38,15 +40,12 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 
-/** Color of the thin band separating the action zone from the history list. */
-private val HomeSeparatorLight = Color(0xFFF2F4F3)
-private val HomeSeparatorDark = Color(0xFF0A0A0A)
-
 @Composable
 fun HomeScreen(
     onCreateMeeting: () -> Unit,
     onJoinMeeting: () -> Unit,
     onHistoryClick: (roomId: String) -> Unit,
+    onSettingsClick: () -> Unit,
 ) {
     val app = LocalContext.current.applicationContext as JusiMeetApp
     val homeViewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory(app))
@@ -57,11 +56,26 @@ fun HomeScreen(
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
     ) {
+        // Top bar — settings entry on the right.
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Default.Settings,
+                    contentDescription = stringResource(R.string.home_settings),
+                )
+            }
+        }
+
         // Action zone — padded, same background as the page.
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 32.dp),
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             ActionCard(
@@ -84,12 +98,11 @@ fun HomeScreen(
 
         // Full-width tinted band separating the action zone from the
         // history list — mirrors the Feishu home layout.
-        val separatorColor = if (isSystemInDarkTheme()) HomeSeparatorDark else HomeSeparatorLight
         Spacer(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(8.dp)
-                .background(separatorColor),
+                .background(JusiMeetTheme.extras.surfaceBand),
         )
 
         // History zone — padded inside its own column.

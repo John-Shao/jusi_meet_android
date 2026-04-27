@@ -22,6 +22,13 @@
     <string name="home_join">加入</string>
     <string name="home_logout">退出登录</string>
     <string name="home_signed_in_as">已登录：%1$s</string>
+    <string name="home_settings">设置</string>
+
+    <!-- 设置页 -->
+    <string name="settings_title">设置</string>
+    <string name="settings_video_codec">视频编解码</string>
+    <string name="settings_video_codec_default_suffix">（默认）</string>
+    <string name="settings_video_codec_hint">将在下一次加入会议时生效。</string>
 
     <!-- Preview screen -->
     <string name="preview_start_meeting">开始会议</string>

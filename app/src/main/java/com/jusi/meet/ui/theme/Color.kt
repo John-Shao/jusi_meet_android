@@ -21,3 +21,11 @@ val DarkOnPrimaryContainer = Color(0xFFD6E4FF)
 val DarkBackground = Color(0xFF111418)
 val DarkSurface = Color(0xFF1A1C1E)
 val DarkOnSurface = Color(0xFFE2E2E5)
+
+// --- Semantic tokens not covered by Material 3's ColorScheme ---------------
+// These surface in [JusiMeetExtras] and are resolved by [JusiMeetTheme] based
+// on the active light/dark mode, so callers never branch on the theme.
+
+/** Thin tinted band used to separate zones on the Home page (飞书-style). */
+val LightSurfaceBand = Color(0xFFF2F4F3)
+val DarkSurfaceBand = Color(0xFF0A0A0A)

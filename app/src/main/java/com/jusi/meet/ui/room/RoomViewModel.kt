@@ -107,7 +107,10 @@ class RoomViewModel(
     private val isAdmin: Boolean = false,
 ) : AndroidViewModel(application) {
 
-    private val controller = LiveKitController(application)
+    private val controller = LiveKitController(
+        appContext = application,
+        videoCodec = (application as JusiMeetApp).settingsStore.videoCodec.value.sdkCodec,
+    )
 
     val room: Room get() = controller.room
 

@@ -175,12 +175,16 @@ fun PreviewScreen(
         previewViewModel.dismissError()
     }
 
+    var closePending by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {},
                 navigationIcon = {
-                    IconButton(onClick = onClose) {
+                    IconButton(onClick = {
+                        if (!closePending) { closePending = true; onClose() }
+                    }) {
                         Icon(Icons.AutoMirrored.Filled.KeyboardArrowLeft, contentDescription = stringResource(R.string.cancel))
                     }
                 },

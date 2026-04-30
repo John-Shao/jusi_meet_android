@@ -67,6 +67,7 @@ fun HomeScreen(
                 Icon(
                     imageVector = Icons.Default.Settings,
                     contentDescription = stringResource(R.string.home_settings),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
         }

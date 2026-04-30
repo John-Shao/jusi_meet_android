@@ -56,12 +56,16 @@ fun SettingsScreen(
     val settingsStore = app.settingsStore
     val selectedCodec by settingsStore.videoCodec.collectAsStateWithLifecycle()
 
+    var backPending by remember { mutableStateOf(false) }
+
     Scaffold(
         topBar = {
             TopAppBar(
                 title = { Text(stringResource(R.string.settings_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(onClick = {
+                        if (!backPending) { backPending = true; onBack() }
+                    }) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.KeyboardArrowLeft,
                             contentDescription = stringResource(R.string.cancel),

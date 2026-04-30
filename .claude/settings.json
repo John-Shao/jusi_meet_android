@@ -10,7 +10,8 @@
       "Bash(cd /tmp)",
       "Bash(jar xf:*)",
       "Read(//tmp/io/livekit/android/room/participant/**)",
-      "Read(//tmp/io/livekit/android/events/**)"
+      "Read(//tmp/io/livekit/android/events/**)",
+      "Bash(git commit -m ' *)"
     ]
   }
 }

@@ -11,7 +11,11 @@
       "Bash(jar xf:*)",
       "Read(//tmp/io/livekit/android/room/participant/**)",
       "Read(//tmp/io/livekit/android/events/**)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git -C \"d:\\\\workspace\\\\Meeting\\\\jusi_meet_android\" status)",
+      "Bash(git -C \"d:\\\\workspace\\\\Meeting\\\\jusi_meet_android\" diff)",
+      "Bash(git -C \"d:\\\\workspace\\\\Meeting\\\\jusi_meet_android\" add app/src/main/res/drawable/ic_launcher_foreground_inset.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml)",
+      "Bash(git -C 'd:\\\\workspace\\\\Meeting\\\\jusi_meet_android' commit -m ' *)"
     ]
   }
 }

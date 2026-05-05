@@ -43,7 +43,14 @@
       "Bash(javap -p livekit/org/webrtc/audio/JavaAudioDeviceModule.class)",
       "Bash(grep -A 3 -i \"minify\\\\|proguard\" app/build.gradle.kts)",
       "Bash(grep -A 3 -i \"minify\\\\|proguard\" app/build.gradle)",
-      "Read(//d/workspace/Meeting/jusi_meet_suite1.9/**)"
+      "Read(//d/workspace/Meeting/jusi_meet_suite1.9/**)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(python -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(python -m pip show Pillow)",
+      "Bash(python3 -c \"from PIL import Image; print\\('Pillow OK'\\)\")",
+      "Bash(pip install *)",
+      "Bash(python -c \"from PIL import Image; print\\('OK'\\)\")"
     ]
   },
   "hooks": {

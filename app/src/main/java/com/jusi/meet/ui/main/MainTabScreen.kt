@@ -16,8 +16,10 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Explore
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Videocam
+import androidx.compose.material.icons.outlined.Explore
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Videocam
 import androidx.compose.material3.HorizontalDivider
@@ -38,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jusi.meet.R
+import com.jusi.meet.ui.discover.DiscoverFeedScreen
 import com.jusi.meet.ui.home.HomeScreen
 import com.jusi.meet.ui.profile.ProfileScreen
 
@@ -49,6 +52,7 @@ private data class TabItem(
 
 private val tabs = listOf(
     TabItem(R.string.tab_meeting, Icons.Filled.Videocam, Icons.Filled.Videocam),
+    TabItem(R.string.tab_discover, Icons.Filled.Explore, Icons.Outlined.Explore),
     TabItem(R.string.tab_profile, Icons.Filled.Person, Icons.Filled.Person),
 )
 
@@ -59,6 +63,11 @@ fun MainTabScreen(
     onHistoryClick: (roomId: String) -> Unit,
     onSettingsClick: () -> Unit,
     onSignedOut: () -> Unit,
+    onPostClick: (postId: String) -> Unit,
+    onCreatorClick: (userId: String) -> Unit,
+    onPublishClick: () -> Unit,
+    onMyWorksClick: () -> Unit,
+    onMyFavoritesClick: () -> Unit,
 ) {
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
@@ -83,7 +92,20 @@ fun MainTabScreen(
             }
             1 -> {
                 Box(modifier = Modifier.padding(padding)) {
-                    ProfileScreen(onSignedOut = onSignedOut)
+                    DiscoverFeedScreen(
+                        onPostClick = onPostClick,
+                        onCreatorClick = onCreatorClick,
+                        onPublishClick = onPublishClick,
+                    )
+                }
+            }
+            2 -> {
+                Box(modifier = Modifier.padding(padding)) {
+                    ProfileScreen(
+                        onSignedOut = onSignedOut,
+                        onMyWorksClick = onMyWorksClick,
+                        onMyFavoritesClick = onMyFavoritesClick,
+                    )
                 }
             }
         }

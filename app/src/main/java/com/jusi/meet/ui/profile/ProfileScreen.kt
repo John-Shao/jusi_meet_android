@@ -64,6 +64,8 @@ private const val INTRO_MAX_LENGTH = 100
 @Composable
 fun ProfileScreen(
     onSignedOut: () -> Unit,
+    onMyWorksClick: () -> Unit = {},
+    onMyFavoritesClick: () -> Unit = {},
 ) {
     val context = LocalContext.current
     val app = context.applicationContext as JusiMeetApp
@@ -213,6 +215,29 @@ fun ProfileScreen(
                 label = stringResource(R.string.profile_phone),
                 value = phone,
                 onClick = null,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // Discover-feed entries: my works / my favorites
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .background(MaterialTheme.colorScheme.surface),
+        ) {
+            SettingsRow(
+                label = stringResource(R.string.profile_my_works),
+                value = "",
+                onClick = onMyWorksClick,
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+            SettingsRow(
+                label = stringResource(R.string.profile_my_favorites),
+                value = "",
+                onClick = onMyFavoritesClick,
             )
         }
 

@@ -35,6 +35,11 @@ import androidx.navigation.navArgument
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 import com.jusi.meet.data.auth.SessionState
+import com.jusi.meet.ui.discover.CreatorScreen
+import com.jusi.meet.ui.discover.MyFavoritesScreen
+import com.jusi.meet.ui.discover.MyWorksScreen
+import com.jusi.meet.ui.discover.PostDetailScreen
+import com.jusi.meet.ui.discover.PostEditorScreen
 import com.jusi.meet.ui.login.LoginScreen
 import com.jusi.meet.ui.main.MainTabScreen
 import com.jusi.meet.ui.preview.PreviewMode
@@ -59,6 +64,17 @@ object Routes {
     private const val HISTORY_BASE = "history_detail"
     const val HISTORY_DETAIL = "$HISTORY_BASE/{roomId}"
 
+    // Discover feed routes
+    private const val POST_DETAIL_BASE = "post_detail"
+    const val POST_DETAIL = "$POST_DETAIL_BASE/{postId}"
+    private const val CREATOR_BASE = "creator"
+    const val CREATOR = "$CREATOR_BASE/{userId}"
+    const val MY_WORKS = "my_works"
+    const val MY_FAVORITES = "my_favorites"
+    const val POST_EDITOR_CREATE = "post_editor_create"
+    private const val POST_EDITOR_EDIT_BASE = "post_editor_edit"
+    const val POST_EDITOR_EDIT = "$POST_EDITOR_EDIT_BASE/{postId}"
+
     fun room(
         roomId: String, url: String, token: String, name: String, slug: String,
         host: String?, createdAtMs: Long, isAdmin: Boolean, mic: Boolean, cam: Boolean,
@@ -73,6 +89,15 @@ object Routes {
         val enc = URLEncoder.encode(roomId, StandardCharsets.UTF_8.name())
         return "$HISTORY_BASE/$enc"
     }
+
+    fun postDetail(postId: String): String =
+        "$POST_DETAIL_BASE/${URLEncoder.encode(postId, StandardCharsets.UTF_8.name())}"
+
+    fun creator(userId: String): String =
+        "$CREATOR_BASE/${URLEncoder.encode(userId, StandardCharsets.UTF_8.name())}"
+
+    fun postEditorEdit(postId: String): String =
+        "$POST_EDITOR_EDIT_BASE/${URLEncoder.encode(postId, StandardCharsets.UTF_8.name())}"
 
     fun decode(value: String): String =
         URLDecoder.decode(value, StandardCharsets.UTF_8.name())
@@ -116,6 +141,80 @@ fun AppNav() {
                         popUpTo(Routes.HOME) { inclusive = true }
                     }
                 },
+                onPostClick = { postId ->
+                    navController.navigate(Routes.postDetail(postId))
+                },
+                onCreatorClick = { userId ->
+                    navController.navigate(Routes.creator(userId))
+                },
+                onPublishClick = { navController.navigate(Routes.POST_EDITOR_CREATE) },
+                onMyWorksClick = { navController.navigate(Routes.MY_WORKS) },
+                onMyFavoritesClick = { navController.navigate(Routes.MY_FAVORITES) },
+            )
+        }
+
+        composable(
+            route = Routes.POST_DETAIL,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType }),
+        ) { entry ->
+            val postId = Routes.decode(entry.arguments!!.getString("postId").orEmpty())
+            PostDetailScreen(
+                postId = postId,
+                onBack = { navController.popBackStack() },
+                onCreatorClick = { uid -> navController.navigate(Routes.creator(uid)) },
+                onEditClick = { navController.navigate(Routes.postEditorEdit(postId)) },
+                onDeleted = { navController.popBackStack() },
+            )
+        }
+
+        composable(
+            route = Routes.CREATOR,
+            arguments = listOf(navArgument("userId") { type = NavType.StringType }),
+        ) { entry ->
+            val userId = Routes.decode(entry.arguments!!.getString("userId").orEmpty())
+            CreatorScreen(
+                userId = userId,
+                onBack = { navController.popBackStack() },
+                onPostClick = { pid -> navController.navigate(Routes.postDetail(pid)) },
+            )
+        }
+
+        composable(Routes.MY_WORKS) {
+            MyWorksScreen(
+                onBack = { navController.popBackStack() },
+                onPostClick = { pid -> navController.navigate(Routes.postDetail(pid)) },
+                onPublishClick = { navController.navigate(Routes.POST_EDITOR_CREATE) },
+            )
+        }
+
+        composable(Routes.MY_FAVORITES) {
+            MyFavoritesScreen(
+                onBack = { navController.popBackStack() },
+                onPostClick = { pid -> navController.navigate(Routes.postDetail(pid)) },
+            )
+        }
+
+        composable(Routes.POST_EDITOR_CREATE) {
+            PostEditorScreen(
+                postId = null,
+                onBack = { navController.popBackStack() },
+                onPublished = { newPostId ->
+                    // Replace editor with the just-published post detail.
+                    navController.popBackStack()
+                    navController.navigate(Routes.postDetail(newPostId))
+                },
+            )
+        }
+
+        composable(
+            route = Routes.POST_EDITOR_EDIT,
+            arguments = listOf(navArgument("postId") { type = NavType.StringType }),
+        ) { entry ->
+            val postId = Routes.decode(entry.arguments!!.getString("postId").orEmpty())
+            PostEditorScreen(
+                postId = postId,
+                onBack = { navController.popBackStack() },
+                onPublished = { _ -> navController.popBackStack() },
             )
         }
 

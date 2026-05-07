@@ -101,6 +101,7 @@
 
     <!-- Tabs -->
     <string name="tab_meeting">Meeting</string>
+    <string name="tab_discover">Discover</string>
     <string name="tab_profile">Me</string>
 
     <!-- Profile screen -->
@@ -124,6 +125,44 @@
     <string name="profile_image_error_size">Image must be 2 MB or smaller</string>
     <string name="profile_image_error_upload">Upload failed, please try again</string>
     <string name="profile_intro_error_save">Failed to save bio</string>
+    <string name="profile_my_works">My Works</string>
+    <string name="profile_my_favorites">My Favorites</string>
+
+    <!-- Discover feed -->
+    <string name="discover_sort_latest">Latest</string>
+    <string name="discover_sort_hottest">Hottest</string>
+    <string name="discover_empty">No posts yet</string>
+    <string name="discover_load_failed">Failed to load. Pull to retry.</string>
+    <string name="discover_publish">Publish</string>
+    <string name="post_favorite">Favorite</string>
+    <string name="post_unfavorite">Unfavorite</string>
+    <string name="post_favorite_count">%1$d</string>
+    <string name="post_delete">Delete</string>
+    <string name="post_edit">Edit</string>
+    <string name="post_delete_confirm">Delete this post permanently?</string>
+    <string name="post_image_pick_title">Choose images (max %1$d)</string>
+    <string name="post_image_pick_max">At most 9 images per post.</string>
+    <string name="post_image_too_large">One of the images exceeds 5 MB.</string>
+    <string name="post_image_unsupported">Only JPG / PNG / WEBP allowed.</string>
+    <string name="post_editor_title_hint">Title (optional, up to 100)</string>
+    <string name="post_editor_description_hint">Description (optional, up to 2000)</string>
+    <string name="post_editor_tag_hint">Add a tag (max 5)</string>
+    <string name="post_editor_publish_busy">Publishing…</string>
+    <string name="post_editor_save">Save</string>
+    <string name="post_save_failed">Failed to save changes.</string>
+    <string name="post_publish_failed">Failed to publish.</string>
+    <string name="post_load_failed">Failed to load post.</string>
+    <string name="post_visibility">Visibility</string>
+    <string name="post_visibility_public">Public</string>
+    <string name="post_visibility_private">Private (only me)</string>
+    <string name="post_visibility_private_badge">Private</string>
+
+    <!-- Creator profile -->
+    <string name="creator_follow">Follow</string>
+    <string name="creator_unfollow">Following</string>
+    <string name="creator_post_count">%1$d posts</string>
+    <string name="creator_follower_count">%1$d followers</string>
+    <string name="creator_following_count">%1$d following</string>
 
     <!-- Generic -->
     <string name="error_network">Network error. Please check your connection and try again.</string>

@@ -5,6 +5,7 @@ import com.jusi.meet.data.api.ApiClient
 import com.jusi.meet.data.auth.TokenStore
 import com.jusi.meet.data.history.HistoryStore
 import com.jusi.meet.data.repository.AuthRepository
+import com.jusi.meet.data.repository.PostRepository
 import com.jusi.meet.data.repository.ProfileRepository
 import com.jusi.meet.data.repository.RoomRepository
 import com.jusi.meet.data.settings.SettingsStore
@@ -28,6 +29,8 @@ class JusiMeetApp : Application() {
         private set
     lateinit var profileRepository: ProfileRepository
         private set
+    lateinit var postRepository: PostRepository
+        private set
     lateinit var roomRepository: RoomRepository
         private set
     lateinit var historyStore: HistoryStore
@@ -43,6 +46,12 @@ class JusiMeetApp : Application() {
         profileRepository = ProfileRepository(
             apiClient.userApi,
             tokenStore,
+            apiClient.okHttp,
+            contentResolver,
+        )
+        postRepository = PostRepository(
+            apiClient.postApi,
+            apiClient.userApi,
             apiClient.okHttp,
             contentResolver,
         )

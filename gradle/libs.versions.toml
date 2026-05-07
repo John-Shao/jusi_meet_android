@@ -26,6 +26,9 @@ moshi = "1.15.1"
 livekit = "2.23.5"
 livekitCompose = "2.2.1"
 
+# Image loading
+coil = "2.7.0"
+
 [libraries]
 # Kotlin / Coroutines
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
@@ -66,6 +69,9 @@ moshi-kotlin = { module = "com.squareup.moshi:moshi-kotlin", version.ref = "mosh
 # LiveKit
 livekit-android = { module = "io.livekit:livekit-android", version.ref = "livekit" }
 livekit-android-compose-components = { module = "io.livekit:livekit-android-compose-components", version.ref = "livekitCompose" }
+
+# Image loading
+coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

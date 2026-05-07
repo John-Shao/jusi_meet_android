@@ -111,6 +111,19 @@
     <string name="profile_nickname_hint">请输入昵称</string>
     <string name="profile_sign_out">退出登录</string>
     <string name="profile_sign_out_confirm">确定要退出登录吗？</string>
+    <string name="profile_intro">个人简介</string>
+    <string name="profile_set_intro">编辑简介</string>
+    <string name="profile_intro_hint">最长 100 个字符</string>
+    <string name="profile_intro_counter">%1$d/%2$d</string>
+    <string name="profile_avatar">头像</string>
+    <string name="profile_change_avatar">更换头像</string>
+    <string name="profile_cover">封面</string>
+    <string name="profile_change_cover">更换封面</string>
+    <string name="profile_image_uploading">上传中…</string>
+    <string name="profile_image_error_mime">仅支持 JPG / PNG / WEBP 格式</string>
+    <string name="profile_image_error_size">图片大小不能超过 2 MB</string>
+    <string name="profile_image_error_upload">上传失败，请稍后再试</string>
+    <string name="profile_intro_error_save">保存简介失败</string>
 
     <!-- Generic -->
     <string name="error_network">网络异常，请检查连接后重试。</string>

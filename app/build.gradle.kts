@@ -106,4 +106,7 @@ dependencies {
     // LiveKit
     implementation(libs.livekit.android)
     implementation(libs.livekit.android.compose.components)
+
+    // Image loading
+    implementation(libs.coil.compose)
 }

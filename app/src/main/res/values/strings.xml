@@ -111,6 +111,19 @@
     <string name="profile_nickname_hint">Enter a nickname</string>
     <string name="profile_sign_out">Sign out</string>
     <string name="profile_sign_out_confirm">Are you sure you want to sign out?</string>
+    <string name="profile_intro">Bio</string>
+    <string name="profile_set_intro">Edit bio</string>
+    <string name="profile_intro_hint">Up to 100 characters</string>
+    <string name="profile_intro_counter">%1$d/%2$d</string>
+    <string name="profile_avatar">Avatar</string>
+    <string name="profile_change_avatar">Change avatar</string>
+    <string name="profile_cover">Cover</string>
+    <string name="profile_change_cover">Change cover</string>
+    <string name="profile_image_uploading">Uploading…</string>
+    <string name="profile_image_error_mime">Only JPG / PNG / WEBP images are allowed</string>
+    <string name="profile_image_error_size">Image must be 2 MB or smaller</string>
+    <string name="profile_image_error_upload">Upload failed, please try again</string>
+    <string name="profile_intro_error_save">Failed to save bio</string>
 
     <!-- Generic -->
     <string name="error_network">Network error. Please check your connection and try again.</string>

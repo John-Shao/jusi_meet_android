@@ -1,7 +1,12 @@
 package com.jusi.meet.ui.profile
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,13 +22,14 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import kotlinx.coroutines.launch
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.CameraAlt
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -39,29 +46,87 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import coil.compose.AsyncImage
 import com.jusi.meet.BuildConfig
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
+import com.jusi.meet.data.repository.ProfileRepository
+import kotlinx.coroutines.launch
+
+private const val INTRO_MAX_LENGTH = 100
 
 @Composable
 fun ProfileScreen(
     onSignedOut: () -> Unit,
 ) {
-    val app = LocalContext.current.applicationContext as JusiMeetApp
+    val context = LocalContext.current
+    val app = context.applicationContext as JusiMeetApp
     val tokenStore = app.tokenStore
-
-    val phone = tokenStore.phone ?: ""
-    var nickname by remember { mutableStateOf(tokenStore.nickname ?: "") }
-    var showNicknameDialog by remember { mutableStateOf(false) }
-    var showSignOutConfirm by remember { mutableStateOf(false) }
+    val profileRepo = app.profileRepository
     val scope = rememberCoroutineScope()
 
-    // Fetch nickname from server only if not cached locally
+    val phone = tokenStore.phone ?: ""
+    var nickname by remember { mutableStateOf(tokenStore.nickname.orEmpty()) }
+    var intro by remember { mutableStateOf(tokenStore.intro.orEmpty()) }
+    var avatarUrl by remember { mutableStateOf(tokenStore.avatarUrl.orEmpty()) }
+    var coverUrl by remember { mutableStateOf(tokenStore.coverUrl.orEmpty()) }
+
+    var showNicknameDialog by remember { mutableStateOf(false) }
+    var showIntroDialog by remember { mutableStateOf(false) }
+    var showSignOutConfirm by remember { mutableStateOf(false) }
+    var uploadingKind by remember { mutableStateOf<ProfileRepository.Kind?>(null) }
+    var errorMessage by remember { mutableStateOf<String?>(null) }
+
+    val mimeError = stringResource(R.string.profile_image_error_mime)
+    val sizeError = stringResource(R.string.profile_image_error_size)
+    val uploadError = stringResource(R.string.profile_image_error_upload)
+    val introError = stringResource(R.string.profile_intro_error_save)
+
+    fun handleUpload(kind: ProfileRepository.Kind, uri: android.net.Uri?) {
+        if (uri == null) return
+        uploadingKind = kind
+        errorMessage = null
+        scope.launch {
+            profileRepo.uploadProfileImage(kind, uri)
+                .onSuccess { user ->
+                    avatarUrl = user.avatar_url
+                    coverUrl = user.cover_url
+                }
+                .onFailure { e ->
+                    errorMessage = when (e) {
+                        is ProfileRepository.UploadError.UnsupportedMime -> mimeError
+                        is ProfileRepository.UploadError.TooLarge -> sizeError
+                        else -> uploadError
+                    }
+                }
+            uploadingKind = null
+        }
+    }
+
+    val avatarPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> handleUpload(ProfileRepository.Kind.AVATAR, uri) }
+
+    val coverPicker = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> handleUpload(ProfileRepository.Kind.COVER, uri) }
+
     LaunchedEffect(Unit) {
+        profileRepo.refreshProfile()
+            .onSuccess { user ->
+                if (user.full_name?.isNotBlank() == true) nickname = user.full_name
+                intro = user.intro
+                avatarUrl = user.avatar_url
+                coverUrl = user.cover_url
+            }
+        // Keep the legacy Keycloak nickname fallback for users that haven't
+        // logged in since the meet-backend started syncing full_name.
         if (nickname.isBlank()) {
             app.authRepository.fetchNickname().onSuccess { name ->
                 if (name.isNotBlank()) nickname = name
@@ -73,54 +138,56 @@ fun ProfileScreen(
         modifier = Modifier
             .fillMaxSize()
             .verticalScroll(rememberScrollState()),
+        horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Spacer(Modifier.height(48.dp))
-
-        // User info card
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 16.dp)
-                .clip(RoundedCornerShape(12.dp))
-                .background(MaterialTheme.colorScheme.surface)
-                .padding(20.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            // Avatar
-            Box(
-                modifier = Modifier
-                    .size(72.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Person,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier.size(40.dp),
-                )
-            }
-
-            Spacer(Modifier.height(16.dp))
-
-            // Nickname
-            Text(
-                text = nickname.ifBlank { phone },
-                style = MaterialTheme.typography.titleLarge,
+        // Cover image banner with avatar overlapping at the bottom edge
+        Box(modifier = Modifier.fillMaxWidth()) {
+            CoverBanner(
+                coverUrl = coverUrl,
+                isUploading = uploadingKind == ProfileRepository.Kind.COVER,
+                onClick = {
+                    coverPicker.launch(
+                        PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                },
             )
-
-            if (nickname.isNotBlank()) {
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    text = phone,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+            AvatarBubble(
+                avatarUrl = avatarUrl,
+                isUploading = uploadingKind == ProfileRepository.Kind.AVATAR,
+                onClick = {
+                    avatarPicker.launch(
+                        PickVisualMediaRequest(
+                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                        )
+                    )
+                },
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .offset(y = 44.dp),
+            )
         }
 
-        Spacer(Modifier.height(16.dp))
+        // Reserve space for the avatar bubble overlapping the banner
+        Spacer(Modifier.height(56.dp))
+
+        Text(
+            text = nickname.ifBlank { phone },
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Medium,
+        )
+        if (intro.isNotBlank()) {
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = intro,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(horizontal = 24.dp),
+            )
+        }
+
+        Spacer(Modifier.height(20.dp))
 
         // Settings list
         Column(
@@ -130,14 +197,18 @@ fun ProfileScreen(
                 .clip(RoundedCornerShape(12.dp))
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            // Nickname setting
             SettingsRow(
                 label = stringResource(R.string.profile_nickname),
                 value = nickname.ifBlank { stringResource(R.string.profile_not_set) },
                 onClick = { showNicknameDialog = true },
             )
             HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
-            // Phone
+            SettingsRow(
+                label = stringResource(R.string.profile_intro),
+                value = intro.ifBlank { stringResource(R.string.profile_not_set) },
+                onClick = { showIntroDialog = true },
+            )
+            HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
             SettingsRow(
                 label = stringResource(R.string.profile_phone),
                 value = phone,
@@ -145,9 +216,18 @@ fun ProfileScreen(
             )
         }
 
+        if (errorMessage != null) {
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = errorMessage!!,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(horizontal = 16.dp),
+            )
+        }
+
         Spacer(Modifier.height(32.dp))
 
-        // Sign out button
         Button(
             onClick = { showSignOutConfirm = true },
             modifier = Modifier
@@ -177,9 +257,10 @@ fun ProfileScreen(
                 Text("Debug: 弄坏 access token")
             }
         }
+
+        Spacer(Modifier.height(24.dp))
     }
 
-    // Nickname edit dialog
     if (showNicknameDialog) {
         NicknameDialog(
             currentNickname = nickname,
@@ -194,7 +275,21 @@ fun ProfileScreen(
         )
     }
 
-    // Sign out confirm dialog
+    if (showIntroDialog) {
+        IntroDialog(
+            currentIntro = intro,
+            onConfirm = { newIntro ->
+                showIntroDialog = false
+                scope.launch {
+                    profileRepo.updateIntro(newIntro)
+                        .onSuccess { user -> intro = user.intro }
+                        .onFailure { errorMessage = introError }
+                }
+            },
+            onDismiss = { showIntroDialog = false },
+        )
+    }
+
     if (showSignOutConfirm) {
         AlertDialog(
             onDismissRequest = { showSignOutConfirm = false },
@@ -215,6 +310,90 @@ fun ProfileScreen(
                 }
             },
         )
+    }
+}
+
+@Composable
+private fun CoverBanner(
+    coverUrl: String,
+    isUploading: Boolean,
+    onClick: () -> Unit,
+) {
+    val placeholderColor = MaterialTheme.colorScheme.primaryContainer
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(160.dp)
+            .background(placeholderColor)
+            .clickable(enabled = !isUploading, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        if (coverUrl.isNotBlank()) {
+            AsyncImage(
+                model = coverUrl,
+                contentDescription = stringResource(R.string.profile_cover),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+        }
+        if (isUploading) {
+            CircularProgressIndicator(color = Color.White)
+        } else {
+            Box(
+                modifier = Modifier
+                    .align(Alignment.TopEnd)
+                    .padding(12.dp)
+                    .clip(CircleShape)
+                    .background(Color.Black.copy(alpha = 0.4f))
+                    .padding(6.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.CameraAlt,
+                    contentDescription = stringResource(R.string.profile_change_cover),
+                    tint = Color.White,
+                    modifier = Modifier.size(18.dp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun AvatarBubble(
+    avatarUrl: String,
+    isUploading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Box(
+        modifier = modifier
+            .size(96.dp)
+            .clip(CircleShape)
+            .border(3.dp, MaterialTheme.colorScheme.background, CircleShape)
+            .background(MaterialTheme.colorScheme.primary)
+            .clickable(enabled = !isUploading, onClick = onClick),
+        contentAlignment = Alignment.Center,
+    ) {
+        when {
+            isUploading -> CircularProgressIndicator(
+                color = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(40.dp),
+            )
+
+            avatarUrl.isNotBlank() -> AsyncImage(
+                model = avatarUrl,
+                contentDescription = stringResource(R.string.profile_avatar),
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop,
+            )
+
+            else -> Icon(
+                imageVector = Icons.Default.Person,
+                contentDescription = stringResource(R.string.profile_avatar),
+                tint = MaterialTheme.colorScheme.onPrimary,
+                modifier = Modifier.size(48.dp),
+            )
+        }
     }
 }
 
@@ -240,6 +419,8 @@ private fun SettingsRow(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            modifier = Modifier.padding(end = 4.dp),
         )
         if (onClick != null) {
             Spacer(Modifier.width(4.dp))
@@ -278,6 +459,54 @@ private fun NicknameDialog(
                 onClick = { onConfirm(input.trim()) },
                 enabled = input.isNotBlank(),
             ) {
+                Text(stringResource(R.string.ok))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(stringResource(R.string.cancel))
+            }
+        },
+    )
+}
+
+@Composable
+private fun IntroDialog(
+    currentIntro: String,
+    onConfirm: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    var input by remember { mutableStateOf(currentIntro) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.profile_set_intro)) },
+        text = {
+            Column(
+                horizontalAlignment = Alignment.End,
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                OutlinedTextField(
+                    value = input,
+                    onValueChange = { input = it.take(INTRO_MAX_LENGTH) },
+                    placeholder = { Text(stringResource(R.string.profile_intro_hint)) },
+                    minLines = 3,
+                    maxLines = 5,
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                Text(
+                    text = stringResource(
+                        R.string.profile_intro_counter,
+                        input.length,
+                        INTRO_MAX_LENGTH,
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onConfirm(input) }) {
                 Text(stringResource(R.string.ok))
             }
         },

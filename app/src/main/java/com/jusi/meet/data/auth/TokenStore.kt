@@ -46,6 +46,26 @@ class TokenStore(context: Context) {
         get() = prefs.getString(KEY_NICKNAME, null)
         set(value) = prefs.edit().putString(KEY_NICKNAME, value).apply()
 
+    /** Personal bio synced from meet-backend (`/users/me/`), capped at 100 chars server-side. */
+    var intro: String?
+        get() = prefs.getString(KEY_INTRO, null)
+        set(value) = prefs.edit().putString(KEY_INTRO, value).apply()
+
+    /** Public avatar URL stored in object storage; empty string when the user has no avatar yet. */
+    var avatarUrl: String?
+        get() = prefs.getString(KEY_AVATAR_URL, null)
+        set(value) = prefs.edit().putString(KEY_AVATAR_URL, value).apply()
+
+    /** Public profile cover image URL; empty string when not set. */
+    var coverUrl: String?
+        get() = prefs.getString(KEY_COVER_URL, null)
+        set(value) = prefs.edit().putString(KEY_COVER_URL, value).apply()
+
+    /** meet-backend user UUID (needed for PATCH /users/{id}/). */
+    var userId: String?
+        get() = prefs.getString(KEY_USER_ID, null)
+        set(value) = prefs.edit().putString(KEY_USER_ID, value).apply()
+
     fun isLoggedIn(): Boolean = !accessToken.isNullOrBlank()
 
     fun clear() {
@@ -58,5 +78,9 @@ class TokenStore(context: Context) {
         const val KEY_REFRESH = "refresh_token"
         const val KEY_PHONE = "phone"
         const val KEY_NICKNAME = "nickname"
+        const val KEY_INTRO = "intro"
+        const val KEY_AVATAR_URL = "avatar_url"
+        const val KEY_COVER_URL = "cover_url"
+        const val KEY_USER_ID = "user_id"
     }
 }

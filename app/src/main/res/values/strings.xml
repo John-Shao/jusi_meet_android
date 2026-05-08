@@ -131,6 +131,7 @@
     <!-- Discover feed -->
     <string name="discover_sort_latest">Latest</string>
     <string name="discover_sort_hottest">Hottest</string>
+    <string name="discover_filter_all">All</string>
     <string name="discover_empty">No posts yet</string>
     <string name="discover_load_failed">Failed to load. Pull to retry.</string>
     <string name="discover_publish">Publish</string>

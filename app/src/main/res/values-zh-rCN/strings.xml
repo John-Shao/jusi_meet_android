@@ -131,6 +131,7 @@
     <!-- Discover feed -->
     <string name="discover_sort_latest">最新</string>
     <string name="discover_sort_hottest">最热</string>
+    <string name="discover_filter_all">全部</string>
     <string name="discover_empty">还没有作品</string>
     <string name="discover_load_failed">加载失败，下拉重试</string>
     <string name="discover_publish">发布</string>

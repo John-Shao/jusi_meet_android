@@ -33,6 +33,7 @@ interface PostApi {
     suspend fun listPosts(
         @Query("ordering") ordering: String? = null,
         @Query("author") author: String? = null,
+        @Query("tag") tag: String? = null,
         @Query("page") page: Int? = null,
         @Query("page_size") pageSize: Int? = null,
     ): PaginatedDto<PostListItemDto>

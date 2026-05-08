@@ -64,11 +64,17 @@ class PostRepository(
 
     suspend fun feed(
         ordering: String? = null,
+        tag: String? = null,
         page: Int? = null,
         pageSize: Int? = null,
     ): Result<PaginatedDto<PostListItemDto>> = runCatching {
         withContext(Dispatchers.IO) {
-            postApi.listPosts(ordering = ordering, page = page, pageSize = pageSize)
+            postApi.listPosts(
+                ordering = ordering,
+                tag = tag,
+                page = page,
+                pageSize = pageSize,
+            )
         }
     }
 

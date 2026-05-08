@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items as lazyRowItems
 import androidx.compose.foundation.lazy.staggeredgrid.LazyVerticalStaggeredGrid
 import androidx.compose.foundation.lazy.staggeredgrid.StaggeredGridCells
 import androidx.compose.foundation.lazy.staggeredgrid.items
@@ -17,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExtendedFloatingActionButton
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButton
@@ -71,6 +74,37 @@ fun DiscoverFeedScreen(
                                     R.string.discover_sort_latest
                                 else R.string.discover_sort_hottest
                             )
+                        )
+                    }
+                }
+            }
+
+            // Tag filter row — single-select. Tapping the active chip clears
+            // back to "All". Hidden until the predefined-tag list arrives so
+            // we don't flash an empty row on cold start.
+            if (state.availableTags.isNotEmpty()) {
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 6.dp),
+                    contentPadding = PaddingValues(horizontal = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item {
+                        FilterChip(
+                            selected = state.selectedTag == null,
+                            onClick = { viewModel.setTagFilter(null) },
+                            label = { Text(stringResource(R.string.discover_filter_all)) },
+                        )
+                    }
+                    lazyRowItems(state.availableTags, key = { it.id }) { tag ->
+                        val isSelected = state.selectedTag == tag.label
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = {
+                                viewModel.setTagFilter(if (isSelected) null else tag.label)
+                            },
+                            label = { Text("#${tag.label}") },
                         )
                     }
                 }

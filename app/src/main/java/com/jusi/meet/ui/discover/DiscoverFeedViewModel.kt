@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.api.dto.PostListItemDto
+import com.jusi.meet.data.api.dto.TagDto
 import com.jusi.meet.data.repository.PostRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,10 @@ class DiscoverFeedViewModel(
 
     data class UiState(
         val sort: Sort = Sort.LATEST,
+        /** Currently-applied single-tag filter (label). null = no filter. */
+        val selectedTag: String? = null,
+        /** Predefined tag chips for the filter row. Loaded once on init. */
+        val availableTags: List<TagDto> = emptyList(),
         val posts: List<PostListItemDto> = emptyList(),
         val loading: Boolean = false,
         val error: String? = null,
@@ -41,12 +46,23 @@ class DiscoverFeedViewModel(
     val state: StateFlow<UiState> = _state.asStateFlow()
 
     init {
+        loadAvailableTags()
         refresh()
     }
 
     fun setSort(sort: Sort) {
         if (_state.value.sort == sort) return
-        _state.value = UiState(sort = sort)
+        _state.value = _state.value.copy(sort = sort)
+        refresh()
+    }
+
+    /**
+     * Apply (or clear) the single-tag filter. Tapping the currently-selected
+     * tag chip again is the canonical way to clear (caller passes null).
+     */
+    fun setTagFilter(tag: String?) {
+        if (_state.value.selectedTag == tag) return
+        _state.value = _state.value.copy(selectedTag = tag)
         refresh()
     }
 
@@ -67,7 +83,11 @@ class DiscoverFeedViewModel(
         if (!cur.hasMore && cur.posts.isNotEmpty()) return
         viewModelScope.launch {
             _state.value = cur.copy(loading = true, error = null)
-            postRepository.feed(ordering = cur.sort.ordering, page = cur.nextPage)
+            postRepository.feed(
+                ordering = cur.sort.ordering,
+                tag = cur.selectedTag,
+                page = cur.nextPage,
+            )
                 .onSuccess { page ->
                     val merged = cur.posts + page.results
                     _state.value = _state.value.copy(
@@ -83,6 +103,14 @@ class DiscoverFeedViewModel(
                         error = e.message ?: "load failed",
                     )
                 }
+        }
+    }
+
+    private fun loadAvailableTags() {
+        viewModelScope.launch {
+            postRepository.listTags().onSuccess { tags ->
+                _state.value = _state.value.copy(availableTags = tags)
+            }
         }
     }
 

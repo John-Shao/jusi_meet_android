@@ -157,6 +157,16 @@
     <string name="post_visibility_private">Private (only me)</string>
     <string name="post_visibility_private_badge">Private</string>
 
+    <!-- Discover: short video -->
+    <string name="post_editor_mode_image">Photos</string>
+    <string name="post_editor_mode_video">Video</string>
+    <string name="post_editor_pick_video">Pick a video</string>
+    <string name="post_editor_video_picked">Video selected (tap to replace)</string>
+    <string name="post_video_pick_hint">MP4 only. Up to 60 seconds, 50 MB.</string>
+    <string name="post_video_too_large">Video exceeds 50 MB.</string>
+    <string name="post_video_too_long">Video exceeds 60 seconds.</string>
+    <string name="post_video_thumbnail_failed">Could not extract a video thumbnail.</string>
+
     <!-- Creator profile -->
     <string name="creator_follow">Follow</string>
     <string name="creator_unfollow">Following</string>

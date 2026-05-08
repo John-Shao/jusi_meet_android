@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.api.dto.PostDetailDto
+import com.jusi.meet.data.api.dto.PostMediaType
 import com.jusi.meet.data.api.dto.PostVisibility
 import com.jusi.meet.data.repository.PostRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,21 +26,35 @@ class PostEditorViewModel(
 
     enum class Mode { CREATE, EDIT }
 
+    /**
+     * Discriminator for the editor's media mode in CREATE.
+     *
+     * When editing existing posts, the user can't change media — only
+     * title / description / tags / visibility. So [MediaMode] is irrelevant
+     * in EDIT mode and we just hide the media picker.
+     */
+    enum class MediaMode { IMAGE, VIDEO }
+
     data class UiState(
         val mode: Mode = Mode.CREATE,
+        val mediaMode: MediaMode = MediaMode.IMAGE,
         val title: String = "",
         val description: String = "",
         val tags: List<String> = emptyList(),
         val tagDraft: String = "",
-        val pickedUris: List<Uri> = emptyList(),
+        // Image mode: 1..9 image URIs.
+        val pickedImageUris: List<Uri> = emptyList(),
+        // Video mode: a single video URI (or null if none yet).
+        val pickedVideoUri: Uri? = null,
         val visibility: String = PostVisibility.PUBLIC,
         val loading: Boolean = false,
         val publishing: Boolean = false,
         val error: String? = null,
         val publishedPostId: String? = null,
         val updatedPostId: String? = null,
-        // Read-only mirror of the existing images when editing.
-        val existingImageUrls: List<String> = emptyList(),
+        // Read-only mirror of the existing media when editing.
+        val existingMediaUrls: List<String> = emptyList(),
+        val existingMediaIsVideo: Boolean = false,
     )
 
     private val _state = MutableStateFlow(UiState())
@@ -53,13 +68,18 @@ class PostEditorViewModel(
         viewModelScope.launch {
             postRepository.detail(postId)
                 .onSuccess { post ->
+                    val isVideo = post.media.firstOrNull()?.media_type == PostMediaType.VIDEO
                     _state.value = _state.value.copy(
                         loading = false,
+                        mediaMode = if (isVideo) MediaMode.VIDEO else MediaMode.IMAGE,
                         title = post.title,
                         description = post.description,
                         tags = post.tags,
                         visibility = post.visibility,
-                        existingImageUrls = post.images.map { it.url },
+                        existingMediaUrls = post.media.map {
+                            if (it.media_type == PostMediaType.VIDEO) it.thumbnail_url else it.url
+                        },
+                        existingMediaIsVideo = isVideo,
                     )
                 }
                 .onFailure { e ->
@@ -109,28 +129,67 @@ class PostEditorViewModel(
         _state.value = _state.value.copy(visibility = value)
     }
 
-    fun setPickedUris(uris: List<Uri>) {
-        _state.value = _state.value.copy(pickedUris = uris.take(9))
+    fun setPickedImageUris(uris: List<Uri>) {
+        // Switching to image mode also clears any previously-picked video.
+        _state.value = _state.value.copy(
+            mediaMode = MediaMode.IMAGE,
+            pickedImageUris = uris.take(9),
+            pickedVideoUri = null,
+        )
+    }
+
+    fun setPickedVideoUri(uri: Uri?) {
+        _state.value = _state.value.copy(
+            mediaMode = MediaMode.VIDEO,
+            pickedVideoUri = uri,
+            pickedImageUris = emptyList(),
+        )
+    }
+
+    fun setMediaMode(mode: MediaMode) {
+        if (_state.value.mediaMode == mode) return
+        _state.value = _state.value.copy(
+            mediaMode = mode,
+            // Clear the other side's picks so we never accidentally publish
+            // a stale image batch in video mode (or vice versa).
+            pickedImageUris = if (mode == MediaMode.IMAGE) _state.value.pickedImageUris else emptyList(),
+            pickedVideoUri = if (mode == MediaMode.VIDEO) _state.value.pickedVideoUri else null,
+        )
     }
 
     fun publish() {
         val cur = _state.value
         if (cur.publishing) return
-        if (cur.mode == Mode.CREATE && cur.pickedUris.isEmpty()) {
-            _state.value = cur.copy(error = "no_images")
-            return
+        if (cur.mode == Mode.CREATE) {
+            val nothingPicked = (cur.mediaMode == MediaMode.IMAGE && cur.pickedImageUris.isEmpty()) ||
+                (cur.mediaMode == MediaMode.VIDEO && cur.pickedVideoUri == null)
+            if (nothingPicked) {
+                _state.value = cur.copy(error = "no_media")
+                return
+            }
         }
 
         _state.value = cur.copy(publishing = true, error = null)
         viewModelScope.launch {
             if (cur.mode == Mode.CREATE) {
-                postRepository.createPostWithImages(
-                    title = cur.title,
-                    description = cur.description,
-                    tags = cur.tags,
-                    uris = cur.pickedUris,
-                    visibility = cur.visibility,
-                )
+                val result = if (cur.mediaMode == MediaMode.VIDEO) {
+                    postRepository.createPostWithVideo(
+                        title = cur.title,
+                        description = cur.description,
+                        tags = cur.tags,
+                        videoUri = cur.pickedVideoUri!!,
+                        visibility = cur.visibility,
+                    )
+                } else {
+                    postRepository.createPostWithImages(
+                        title = cur.title,
+                        description = cur.description,
+                        tags = cur.tags,
+                        uris = cur.pickedImageUris,
+                        visibility = cur.visibility,
+                    )
+                }
+                result
                     .onSuccess { post ->
                         _state.value = _state.value.copy(
                             publishing = false,

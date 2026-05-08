@@ -18,6 +18,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -34,6 +35,7 @@ import androidx.compose.ui.unit.dp
 import coil.compose.AsyncImage
 import com.jusi.meet.R
 import com.jusi.meet.data.api.dto.PostListItemDto
+import com.jusi.meet.data.api.dto.PostMediaType
 import com.jusi.meet.data.api.dto.PostVisibility
 
 /**
@@ -50,7 +52,13 @@ fun PostCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val first = post.first_image
+    val first = post.first_media
+    val isVideo = first?.media_type == PostMediaType.VIDEO
+    // For videos, the static thumbnail is the right cover image; the actual
+    // mp4 URL is only used by the detail-page player.
+    val coverUrl = first?.let {
+        if (isVideo) it.thumbnail_url else it.url
+    }
     // Clamp the displayed aspect ratio so a vertical 1:5 image doesn't break
     // the grid; falls back to 4:3 if dimensions are missing.
     val aspect: Float = first
@@ -70,13 +78,47 @@ fun PostCard(
                 .height((180f / aspect).dp)
                 .background(MaterialTheme.colorScheme.surfaceVariant),
         ) {
-            if (first != null) {
+            if (coverUrl != null && coverUrl.isNotBlank()) {
                 AsyncImage(
-                    model = first.url,
+                    model = coverUrl,
                     contentDescription = post.title.ifBlank { null },
                     contentScale = ContentScale.Crop,
                     modifier = Modifier.fillMaxSize(),
                 )
+            }
+            // Video play badge over the centre of the thumbnail.
+            if (isVideo) {
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.Center)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(Color.Black.copy(alpha = 0.5f)),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        Icons.Default.PlayArrow,
+                        contentDescription = null,
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+                // Bottom-right duration chip (mm:ss) — clearer affordance.
+                first?.duration_seconds?.takeIf { it > 0 }?.let { secs ->
+                    val mm = secs / 60
+                    val ss = secs % 60
+                    Text(
+                        text = "%d:%02d".format(mm, ss),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = Color.White,
+                        modifier = Modifier
+                            .align(Alignment.BottomEnd)
+                            .padding(6.dp)
+                            .clip(MaterialTheme.shapes.small)
+                            .background(Color.Black.copy(alpha = 0.55f))
+                            .padding(horizontal = 5.dp, vertical = 1.dp),
+                    )
+                }
             }
             // Private badge — by construction, the only way a private post
             // ends up in a feed list is when the caller IS the author.

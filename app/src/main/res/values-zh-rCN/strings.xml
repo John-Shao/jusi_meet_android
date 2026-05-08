@@ -157,6 +157,16 @@
     <string name="post_visibility_private">仅自己可见</string>
     <string name="post_visibility_private_badge">私密</string>
 
+    <!-- 发现：短视频 -->
+    <string name="post_editor_mode_image">图片</string>
+    <string name="post_editor_mode_video">视频</string>
+    <string name="post_editor_pick_video">选择视频</string>
+    <string name="post_editor_video_picked">已选视频（点击重选）</string>
+    <string name="post_video_pick_hint">仅支持 MP4，时长不超过 60 秒，大小不超过 50 MB</string>
+    <string name="post_video_too_large">视频超过 50 MB</string>
+    <string name="post_video_too_long">视频超过 60 秒</string>
+    <string name="post_video_thumbnail_failed">无法生成视频缩略图</string>
+
     <!-- Creator profile -->
     <string name="creator_follow">关注</string>
     <string name="creator_unfollow">已关注</string>

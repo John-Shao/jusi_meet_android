@@ -26,31 +26,47 @@ data class PublicUserDto(
     val is_following: Boolean,
 )
 
-/** One image attached to a post (server-returned). */
+/** One media item (image or video) attached to a post — server-returned. */
 @JsonClass(generateAdapter = true)
-data class PostImageDto(
+data class PostMediaDto(
     val id: String,
+    val media_type: String,
     val url: String,
     val width: Int,
     val height: Int,
     val size_bytes: Long,
     val order: Int,
+    /** video-only; null for images. */
+    val duration_seconds: Int?,
+    /** video-only; empty string for images. */
+    val thumbnail_url: String,
 )
 
-/** One image as supplied at post-creation time (client-provided). */
+/** One media item as supplied at post-creation time (client-provided). */
 @JsonClass(generateAdapter = true)
-data class PostImageInputDto(
+data class PostMediaInputDto(
+    val media_type: String,
     val object_key: String,
     val width: Int,
     val height: Int,
     val size_bytes: Long,
     val order: Int,
+    /** required for videos; empty for images. */
+    val thumbnail_object_key: String? = null,
+    /** required for videos; null for images. */
+    val duration_seconds: Int? = null,
 )
 
 /** Post visibility tier returned / accepted by the backend. */
 object PostVisibility {
     const val PUBLIC = "public"
     const val PRIVATE = "private"
+}
+
+/** Media-type discriminator on PostMedia rows. */
+object PostMediaType {
+    const val IMAGE = "image"
+    const val VIDEO = "video"
 }
 
 /** Feed-card payload. */
@@ -62,12 +78,12 @@ data class PostListItemDto(
     val tags: List<String>,
     val visibility: String,
     val favorite_count: Int,
-    val first_image: PostImageDto?,
+    val first_media: PostMediaDto?,
     val is_favorited: Boolean,
     val created_at: String,
 )
 
-/** Detail payload — full author block + all images + description. */
+/** Detail payload — full author block + all media items + description. */
 @JsonClass(generateAdapter = true)
 data class PostDetailDto(
     val id: String,
@@ -77,8 +93,8 @@ data class PostDetailDto(
     val tags: List<String>,
     val visibility: String,
     val favorite_count: Int,
-    val first_image: PostImageDto?,
-    val images: List<PostImageDto>,
+    val first_media: PostMediaDto?,
+    val media: List<PostMediaDto>,
     val is_favorited: Boolean,
     val created_at: String,
     val updated_at: String,
@@ -91,7 +107,7 @@ data class CreatePostRequest(
     val description: String,
     val tags: List<String>,
     val visibility: String,
-    val images: List<PostImageInputDto>,
+    val media: List<PostMediaInputDto>,
 )
 
 /** Body for `PATCH /posts/{id}/`. */

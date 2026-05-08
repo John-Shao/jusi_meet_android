@@ -56,8 +56,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.AsyncImage
 import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
+import com.jusi.meet.data.api.dto.PostMediaType
 import com.jusi.meet.data.api.dto.PostVisibility
 import com.jusi.meet.ui.discover.components.TagChipsReadOnly
+import com.jusi.meet.ui.discover.components.VideoPlayer
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -121,31 +123,47 @@ fun PostDetailScreen(
                             .weight(1f)
                             .verticalScroll(rememberScrollState()),
                     ) {
-                        // Image pager
-                        val pagerState = rememberPagerState(pageCount = { post.images.size })
-                        HorizontalPager(
-                            state = pagerState,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .aspectRatio(1f),
-                        ) { idx ->
-                            val img = post.images[idx]
-                            AsyncImage(
-                                model = img.url,
-                                contentDescription = null,
-                                contentScale = ContentScale.Fit,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                        if (post.images.size > 1) {
-                            Text(
-                                text = "${pagerState.currentPage + 1} / ${post.images.size}",
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        val firstMedia = post.media.firstOrNull()
+
+                        if (firstMedia != null && firstMedia.media_type == PostMediaType.VIDEO) {
+                            // Single video — show ExoPlayer; aspect ratio from
+                            // intrinsic dimensions, clamped so vertical 9:16
+                            // still fits without dominating the screen.
+                            val ratio = (firstMedia.width.toFloat() /
+                                firstMedia.height.toFloat()).coerceIn(0.5f, 1.6f)
+                            VideoPlayer(
+                                videoUrl = firstMedia.url,
                                 modifier = Modifier
-                                    .align(Alignment.CenterHorizontally)
-                                    .padding(top = 4.dp),
+                                    .fillMaxWidth()
+                                    .aspectRatio(ratio),
                             )
+                        } else if (post.media.isNotEmpty()) {
+                            // Image carousel.
+                            val pagerState = rememberPagerState(pageCount = { post.media.size })
+                            HorizontalPager(
+                                state = pagerState,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .aspectRatio(1f),
+                            ) { idx ->
+                                val img = post.media[idx]
+                                AsyncImage(
+                                    model = img.url,
+                                    contentDescription = null,
+                                    contentScale = ContentScale.Fit,
+                                    modifier = Modifier.fillMaxSize(),
+                                )
+                            }
+                            if (post.media.size > 1) {
+                                Text(
+                                    text = "${pagerState.currentPage + 1} / ${post.media.size}",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier
+                                        .align(Alignment.CenterHorizontally)
+                                        .padding(top = 4.dp),
+                                )
+                            }
                         }
 
                         Spacer(Modifier.height(12.dp))

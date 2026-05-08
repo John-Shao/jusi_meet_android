@@ -146,7 +146,10 @@
     <string name="post_image_unsupported">Only JPG / PNG / WEBP allowed.</string>
     <string name="post_editor_title_hint">Title (optional, up to 100)</string>
     <string name="post_editor_description_hint">Description (optional, up to 2000)</string>
-    <string name="post_editor_tag_hint">Add a tag (max 5)</string>
+    <string name="post_editor_select_tags">Select tags (%1$d/%2$d)</string>
+    <string name="post_editor_tags_picker_title">Tags</string>
+    <string name="post_editor_tags_empty">No tags available yet</string>
+    <string name="post_editor_tags_done">Done</string>
     <string name="post_editor_publish_busy">Publishing…</string>
     <string name="post_editor_save">Save</string>
     <string name="post_save_failed">Failed to save changes.</string>

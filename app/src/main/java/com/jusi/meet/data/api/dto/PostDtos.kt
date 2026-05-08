@@ -140,3 +140,11 @@ data class PaginatedDto<T>(
     val previous: String?,
     val results: List<T>,
 )
+
+/** Predefined Discover-feed tag returned by GET /api/v1.0/tags/. */
+@JsonClass(generateAdapter = true)
+data class TagDto(
+    val id: String,
+    val label: String,
+    val sort_order: Int,
+)

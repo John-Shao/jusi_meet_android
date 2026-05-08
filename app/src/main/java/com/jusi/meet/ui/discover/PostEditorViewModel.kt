@@ -8,6 +8,7 @@ import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.data.api.dto.PostDetailDto
 import com.jusi.meet.data.api.dto.PostMediaType
 import com.jusi.meet.data.api.dto.PostVisibility
+import com.jusi.meet.data.api.dto.TagDto
 import com.jusi.meet.data.repository.PostRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,8 +41,12 @@ class PostEditorViewModel(
         val mediaMode: MediaMode = MediaMode.IMAGE,
         val title: String = "",
         val description: String = "",
+        // Selected tag labels that will be sent on publish.
         val tags: List<String> = emptyList(),
-        val tagDraft: String = "",
+        // Active labels fetched from /api/v1.0/tags/ — drives the picker.
+        val availableTags: List<TagDto> = emptyList(),
+        // True while the bottom-sheet picker is open.
+        val tagPickerOpen: Boolean = false,
         // Image mode: 1..9 image URIs.
         val pickedImageUris: List<Uri> = emptyList(),
         // Video mode: a single video URI (or null if none yet).
@@ -62,9 +67,29 @@ class PostEditorViewModel(
 
     private var editingPostId: String? = null
 
+    init {
+        loadAvailableTags()
+    }
+
+    private fun loadAvailableTags() {
+        viewModelScope.launch {
+            postRepository.listTags()
+                .onSuccess { tags ->
+                    _state.value = _state.value.copy(availableTags = tags)
+                }
+            // On failure we leave availableTags empty; the picker will
+            // render the "no tags available" empty-state.
+        }
+    }
+
     fun loadForEdit(postId: String) {
         editingPostId = postId
-        _state.value = UiState(mode = Mode.EDIT, loading = true)
+        // Preserve any tags already loaded by init so the picker doesn't
+        // briefly show "no tags available" while detail is in flight.
+        _state.value = _state.value.copy(
+            mode = Mode.EDIT,
+            loading = true,
+        )
         viewModelScope.launch {
             postRepository.detail(postId)
                 .onSuccess { post ->
@@ -99,23 +124,28 @@ class PostEditorViewModel(
         if (v.length <= 2000) _state.value = _state.value.copy(description = v)
     }
 
-    fun setTagDraft(v: String) {
-        if (v.length <= 20) _state.value = _state.value.copy(tagDraft = v)
+    fun openTagPicker() {
+        _state.value = _state.value.copy(tagPickerOpen = true)
     }
 
-    fun commitTagDraft() {
+    fun closeTagPicker() {
+        _state.value = _state.value.copy(tagPickerOpen = false)
+    }
+
+    /**
+     * Multi-select toggle from the picker. If already selected → remove.
+     * If not selected and current selection < 5 → add. The 5-cap is also
+     * defended on the backend; doing it here keeps the user from staring
+     * at a successful tap that doesn't visibly do anything.
+     */
+    fun toggleTag(label: String) {
         val cur = _state.value
-        val tag = cur.tagDraft.trim()
-        if (tag.isBlank()) return
-        if (cur.tags.size >= 5) {
-            _state.value = cur.copy(tagDraft = "")
-            return
+        val newTags = if (label in cur.tags) {
+            cur.tags - label
+        } else {
+            if (cur.tags.size >= 5) cur.tags else cur.tags + label
         }
-        if (cur.tags.contains(tag)) {
-            _state.value = cur.copy(tagDraft = "")
-            return
-        }
-        _state.value = cur.copy(tags = cur.tags + tag, tagDraft = "")
+        _state.value = cur.copy(tags = newTags)
     }
 
     fun removeTag(index: Int) {

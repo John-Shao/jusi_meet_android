@@ -7,6 +7,7 @@ import com.jusi.meet.data.api.dto.PaginatedDto
 import com.jusi.meet.data.api.dto.PostDetailDto
 import com.jusi.meet.data.api.dto.PostListItemDto
 import com.jusi.meet.data.api.dto.PublicUserDto
+import com.jusi.meet.data.api.dto.TagDto
 import com.jusi.meet.data.api.dto.UpdatePostRequest
 import retrofit2.http.Body
 import retrofit2.http.DELETE
@@ -92,4 +93,13 @@ interface PostApi {
 
     @DELETE("api/v1.0/users/{id}/follow/")
     suspend fun unfollow(@Path("id") id: String)
+
+    // --- predefined tags (read-only) ------------------------------------
+
+    /**
+     * The endpoint disables DRF pagination, so the response body is a
+     * raw JSON array of tags rather than a paginated envelope.
+     */
+    @GET("api/v1.0/tags/")
+    suspend fun listTags(): List<TagDto>
 }

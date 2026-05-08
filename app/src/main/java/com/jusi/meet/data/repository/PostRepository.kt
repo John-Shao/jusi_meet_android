@@ -18,6 +18,7 @@ import com.jusi.meet.data.api.dto.PostMediaInputDto
 import com.jusi.meet.data.api.dto.PostMediaType
 import com.jusi.meet.data.api.dto.PostVisibility
 import com.jusi.meet.data.api.dto.PublicUserDto
+import com.jusi.meet.data.api.dto.TagDto
 import com.jusi.meet.data.api.dto.UpdatePostRequest
 import com.jusi.meet.data.api.dto.UploadUrlRequest
 import com.jusi.meet.data.auth.AuthInterceptor
@@ -142,6 +143,11 @@ class PostRepository(
 
     suspend fun publicUser(userId: String): Result<PublicUserDto> = runCatching {
         withContext(Dispatchers.IO) { postApi.getPublicUser(userId) }
+    }
+
+    /** Fetch the active predefined tag list for the post-editor picker. */
+    suspend fun listTags(): Result<List<TagDto>> = runCatching {
+        withContext(Dispatchers.IO) { postApi.listTags() }
     }
 
     // --- Image post creation -----------------------------------------------

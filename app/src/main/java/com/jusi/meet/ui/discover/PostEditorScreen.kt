@@ -28,6 +28,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Button
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -61,6 +62,7 @@ import com.jusi.meet.JusiMeetApp
 import com.jusi.meet.R
 import com.jusi.meet.data.api.dto.PostVisibility
 import com.jusi.meet.ui.discover.components.TagChipsEditable
+import com.jusi.meet.ui.discover.components.TagPickerSheet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -302,29 +304,23 @@ fun PostEditorScreen(
 
             Spacer(Modifier.height(12.dp))
 
-            // Tag input
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedTextField(
-                    value = state.tagDraft,
-                    onValueChange = viewModel::setTagDraft,
-                    placeholder = { Text(stringResource(R.string.post_editor_tag_hint)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(
-                        capitalization = KeyboardCapitalization.None,
-                        imeAction = ImeAction.Done,
-                    ),
-                    modifier = Modifier.weight(1f),
-                )
-                Spacer(Modifier.width(8.dp))
-                Button(onClick = { viewModel.commitTagDraft() }) {
-                    Icon(Icons.Default.Add, contentDescription = null)
-                }
-            }
-            Spacer(Modifier.height(8.dp))
+            // Tag picker — admin maintains the list, user only chooses.
             TagChipsEditable(
                 tags = state.tags,
                 onRemove = viewModel::removeTag,
             )
+            Spacer(Modifier.height(if (state.tags.isEmpty()) 0.dp else 8.dp))
+            OutlinedButton(
+                onClick = { viewModel.openTagPicker() },
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    text = stringResource(
+                        R.string.post_editor_select_tags,
+                        state.tags.size, 5,
+                    )
+                )
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -369,5 +365,14 @@ fun PostEditorScreen(
 
             Spacer(Modifier.height(40.dp))
         }
+    }
+
+    if (state.tagPickerOpen) {
+        TagPickerSheet(
+            availableTags = state.availableTags,
+            selectedLabels = state.tags,
+            onToggle = viewModel::toggleTag,
+            onDismiss = viewModel::closeTagPicker,
+        )
     }
 }
